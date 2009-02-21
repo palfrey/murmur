@@ -1,5 +1,5 @@
 import twitter
-from ConfigParser import SafeConfigParser
+from ConfigParser import SafeConfigParser, NoOptionError
 from pickle import load,dump
 from os.path import getmtime,exists
 from time import time
@@ -17,11 +17,11 @@ class CachedApi(twitter.Api):
 			self.username = None
 		if "password" in kwargs:
 			self.password = kwargs["password"]
-		else:
+			self.logged_in = False
+		else: # no password means unprotected updates only
 			self.password = None
-		self.logged_in = False
-		self.logged_in = True
-		twitter.Api.__init__(self)
+			self.logged_in = True
+			twitter.Api.__init__(self)
 		self.max_age = kwargs['max_age']
 	
 	def _doLogin(self):
@@ -31,22 +31,35 @@ class CachedApi(twitter.Api):
 			return
 		twitter.Api.__init__(self,username=self.username,password=self.password)
 		self.logged_in = True
-		print "logged in"
 
 	def GetUserTimeline(self, user=None, count=None, since=None):
 		pname ="timeline-%s.pickle"%user
 		try:
 			if self.max_age==-1 or time()-getmtime(pname)<self.max_age:
-				return load(file(pname))
+				data = load(file(pname))
+				if isinstance(data,twitter.TwitterAuthError):
+					raise data
+				else:
+					return data
 			else:
 				raise IOError
 		except (OSError,IOError,EOFError):
 			self._doLogin()
-			data = twitter.Api.GetUserTimeline(self,user)
-			dump(data,file(pname,"wb"))
-			return data
+			try:
+				data = twitter.Api.GetUserTimeline(self,user)
+				dump(data,file(pname,"wb"))
+			except twitter.TwitterAuthError,e:
+				dump(e,file(pname,"wb"))
+				raise
+		return data
 
-api = CachedApi(username=username,password=config.get("twitter","password"),max_age=60*60)
+
+try:
+	password=config.get("twitter","password")
+except NoOptionError: # no password = unprotected updates only
+	password = None
+
+api = CachedApi(username=username,password=password,max_age=60*60)
 statuses = api.GetUserTimeline(username)
 used = []
 for s in statuses:
