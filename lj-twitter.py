@@ -109,25 +109,25 @@ for s in statuses:
 
 todo.reverse()
 
-output = "<ul>"
+output = "<lj-cut text=\"tweets\"><ul>"
 for sequence in todo:
 	output += "<li>"
 	for item in sequence:
 		when = strptime(item.created_at,"%a %b %d %H:%M:%S +0000 %Y")
 		try:
-			name = password=config.get("mapping",item.user.screen_name)
-			name = "<lj-user=\"%s\">"%name
+			name = config.get("mapping",item.user.screen_name)
+			name = "<lj user=\"%s\">"%name
 		except NoOptionError:
-			name = "<img src=\"https://assets1.twitter.com/images/favicon.ico\" /><a href=\"http://twitter.com/%s\">%s</a>"%(item.user.screen_name,item.user.screen_name)
+			name = "<img src=\"https://assets1.twitter.com/images/favicon.ico\" /><a href=\"http://twitter.com/%s\"><b>%s</b></a>"%(item.user.screen_name,item.user.screen_name)
 		if item.text[0] == item.text[0].upper():
 			between = ": "
 		else:
 			between = ""
-		text = "%s %s %s%s <a href=\"http://twitter.com/%s/statuses/%d\">#</a>"%(strftime("%I:%M %p",when), name, between, item.text, item.user.screen_name, item.id)
+		text = "<em>%s</em> %s %s%s <a href=\"http://twitter.com/%s/statuses/%d\">#</a>"%(strftime("%I:%M %p",when), name, between, item.text, item.user.screen_name, item.id)
 		output+=text
 		if len(sequence)>1 and item!=sequence[-1]:
-			output +="<br />\n"
+			output +="<br />"
 	output += "</li>\n"
-output += "</ul>"
+output += "</ul><small>Automagically shipped by <a href=\"http://github.com/palfrey/murmur/\">Murmur</a></small></lj-cut>"
 print output
 
