@@ -1,0 +1,10 @@
+[twitter]
+username=your_twitter_name
+
+[livejournal]
+username=your_lj_username
+password=your_lj_password
+security=public
+
+[mapping]
+your_twitter_friend = your_friends_lj_name
