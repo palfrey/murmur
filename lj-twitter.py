@@ -131,3 +131,21 @@ for sequence in todo:
 output += "</ul><small>Automagically shipped by <a href=\"http://github.com/palfrey/murmur/\">Murmur</a></small></lj-cut>"
 print output
 
+from livejournal import LiveJournal, list2list, list2mask
+
+subject = u"Daily mutterings"
+body = output
+
+username = config.get("livejournal","username")
+password = config.get("livejournal","password")
+usejournal = username
+
+lj = LiveJournal (0)
+info = lj.login (username, password)
+security = list2mask (config.get("livejournal","security"), info.friendgroups)
+
+entry = lj.postevent (body,
+				subject = subject,
+				security = security)
+
+print 'Posted'
