@@ -2,7 +2,8 @@ import twitter
 from ConfigParser import SafeConfigParser, NoOptionError
 from pickle import load,dump
 from os.path import getmtime,exists
-from time import time
+from time import time,strptime,strftime
+from datetime import date, timedelta
 
 config = SafeConfigParser()
 config.read("settings.ini")
@@ -59,11 +60,17 @@ try:
 except NoOptionError: # no password = unprotected updates only
 	password = None
 
+yesterday = date.today()-timedelta(1)
+
 api = CachedApi(username=username,password=password,max_age=60*60)
 statuses = api.GetUserTimeline(username)
+todo = []
 used = []
 for s in statuses:
 	if s in used:
+		continue
+	when = strptime(s.created_at,"%a %b %d %H:%M:%S +0000 %Y")
+	if date(*when[:3]) != yesterday:
 		continue
 	top = s
 	sequence = [s]
@@ -91,7 +98,13 @@ for s in statuses:
 				break
 		else:
 			break
+	todo.append(sequence)
+
+todo.reverse()
+
+for sequence in todo:
 	for item in sequence:
-		print item.created_at,item.user.screen_name,item.text
+		when = strptime(item.created_at,"%a %b %d %H:%M:%S +0000 %Y")
+		print strftime("%I:%M %p",when), item.user.screen_name,item.text
 	print
 
