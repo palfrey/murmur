@@ -87,6 +87,13 @@ for s in statuses:
 				if o.id == top.in_reply_to_status_id:
 					if o in used:
 						break
+					raw = top.text
+					while True:
+						x = raw[0]
+						raw = raw[1:]
+						if x in (" ","\t"):
+							break
+					top.text = raw
 					used.append(o)
 					sequence = [o] + sequence
 					top = o
