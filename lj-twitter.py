@@ -118,7 +118,7 @@ for sequence in todo:
 			name = password=config.get("mapping",item.user.screen_name)
 			name = "<lj-user=\"%s\">"%name
 		except NoOptionError:
-			name = "<a href=\"http://twitter.com/%s\">%s</a>"%(item.user.screen_name,item.user.screen_name)
+			name = "<img src=\"https://assets1.twitter.com/images/favicon.ico\" /><a href=\"http://twitter.com/%s\">%s</a>"%(item.user.screen_name,item.user.screen_name)
 		if item.text[0] == item.text[0].upper():
 			between = ": "
 		else:
