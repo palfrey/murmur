@@ -18,8 +18,7 @@
 
 # this file just provides a list of all stuff we expect the developer to use
 
-__all__ = [ 'LiveJournal', 'LJError', 'Config', 'evalue', 'getdate', 'list2list', 'list2mask' ]
+__all__ = [ 'LiveJournal', 'LJError', 'getdate', 'list2list', 'list2mask' ]
 
-from livejournal.config import Config, evalue
 from livejournal.utils import list2list, list2mask
 from livejournal.protocol import LiveJournal, LJError, getdate
