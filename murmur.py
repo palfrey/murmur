@@ -146,6 +146,7 @@ security = list2mask (config.get("livejournal","security"), info.friendgroups)
 
 entry = lj.postevent (body,
 				subject = subject,
-				security = security)
+				security = security,
+				props = {"taglist","twitter"})
 
 print 'Posted'
