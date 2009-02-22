@@ -109,7 +109,9 @@ for s in statuses:
 
 todo.reverse()
 
+output = "<ul>"
 for sequence in todo:
+	output += "<li>"
 	for item in sequence:
 		when = strptime(item.created_at,"%a %b %d %H:%M:%S +0000 %Y")
 		try:
@@ -117,6 +119,15 @@ for sequence in todo:
 			name = "<lj-user=\"%s\">"%name
 		except NoOptionError:
 			name = "<a href=\"http://twitter.com/%s\">%s</a>"%(item.user.screen_name,item.user.screen_name)
-		print strftime("%I:%M %p",when), name,item.text
-	print
+		if item.text[0] == item.text[0].upper():
+			between = ": "
+		else:
+			between = ""
+		text = "%s %s %s%s"%(strftime("%I:%M %p",when), name, between, item.text)
+		output+=text
+		if len(sequence)>1 and item!=sequence[-1]:
+			output +="<br />\n"
+	output += "</li>\n"
+output += "</ul>"
+print output
 
