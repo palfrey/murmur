@@ -105,6 +105,11 @@ todo.reverse()
 for sequence in todo:
 	for item in sequence:
 		when = strptime(item.created_at,"%a %b %d %H:%M:%S +0000 %Y")
-		print strftime("%I:%M %p",when), item.user.screen_name,item.text
+		try:
+			name = password=config.get("mapping",item.user.screen_name)
+			name = "<lj-user=\"%s\">"%name
+		except NoOptionError:
+			name = "<a href=\"http://twitter.com/%s\">%s</a>"%(item.user.screen_name,item.user.screen_name)
+		print strftime("%I:%M %p",when), name,item.text
 	print
 
