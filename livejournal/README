@@ -1,0 +1,11 @@
+python stuff for livejournal
+
+Mikhail Sobolev <mss@mawhrin.net>
+$Id: README 52 2002-09-05 09:31:13Z mss $
+
+This is a simple implementation of XML-RPC variant of LiveJournal client-server
+protocol as of 
+    http://www.livejournal.com/doc/server/ljp.csp.xml-rpc.protocol.html
+
+The method documentation was copied from the appropriate articles.  I am not
+that sure that this is really OK.
