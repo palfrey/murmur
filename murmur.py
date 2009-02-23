@@ -127,7 +127,7 @@ for sequence in todo:
 			between = ": "
 		else:
 			between = ""
-		text = "<em>%s</em> %s %s%s <a href=\"http://twitter.com/%s/statuses/%d\">#</a>"%(strftime("%I:%M %p",when), name, between, item.text, item.user.screen_name, item.id)
+		text = "<em>%s</em> %s %s%s <a href=\"http://twitter.com/%s/statuses/%d\">#</a>"%(strftime("%d/%m %I:%M %p",when), name, between, item.text, item.user.screen_name, item.id)
 		output+=text
 		if len(sequence)>1 and item!=sequence[-1]:
 			output +="<br />"
