@@ -67,14 +67,14 @@ statuses = api.GetUserTimeline(username)
 todo = []
 used = []
 for s in statuses:
-	if s in used:
+	if s.id in used:
 		continue
 	when = strptime(s.created_at,"%a %b %d %H:%M:%S +0000 %Y")
 	if date(*when[:3]) != yesterday:
 		continue
 	top = s
 	sequence = [s]
-	used.append(s)
+	used.append(s.id)
 	while True:
 		if top.in_reply_to_status_id!=None: # reply
 			othername = top.in_reply_to_screen_name
@@ -83,9 +83,10 @@ for s in statuses:
 				otherstatus = api.GetUserTimeline(othername)
 			except twitter.TwitterAuthError: # assume protected updates
 				break
+			found = False
 			for o in otherstatus:
 				if o.id == top.in_reply_to_status_id:
-					if o in used:
+					if o.id in used:
 						break
 					raw = top.text
 					while True:
@@ -94,14 +95,15 @@ for s in statuses:
 						if x in (" ","\t"):
 							break
 					top.text = raw
-					used.append(o)
+					used.append(o.id)
 					sequence = [o] + sequence
 					top = o
+					found = True
 					break
 			else:
 				print "nothing earlier"
 				break
-			if top not in otherstatus:
+			if not found:
 				break
 		else:
 			break
