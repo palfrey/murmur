@@ -72,6 +72,7 @@ for s in statuses:
 	when = strptime(s.created_at,"%a %b %d %H:%M:%S +0000 %Y")
 	if date(*when[:3]) != yesterday:
 		continue
+	s.when = when
 	top = s
 	sequence = [s]
 	used.append(s.id)
@@ -88,6 +89,7 @@ for s in statuses:
 				if o.id == top.in_reply_to_status_id:
 					if o.id in used:
 						break
+					o.when = strptime(o.created_at,"%a %b %d %H:%M:%S +0000 %Y")
 					raw = top.text
 					while True:
 						x = raw[0]
@@ -109,7 +111,7 @@ for s in statuses:
 			break
 	todo.append(sequence)
 
-todo.reverse()
+todo.sort(lambda x,y:cmp(x[0].when,y[0].when))
 
 output = "<lj-cut text=\"tweets\"><ul>"
 for sequence in todo:
