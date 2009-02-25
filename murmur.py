@@ -118,7 +118,6 @@ for s in statuses:
 					found = True
 					break
 			else:
-				print "nothing earlier"
 				break
 			if not found:
 				break
