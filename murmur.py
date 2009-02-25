@@ -5,6 +5,12 @@ from os.path import getmtime,exists
 from time import time,strptime,strftime
 from datetime import date, timedelta
 
+from optparse import OptionParser
+
+parser = OptionParser()
+parser.add_option("-n","--no-post",help="Don't post, just work out what we would have posted",dest="post",action="store_false",default=True)
+(opts,args) = parser.parse_args()
+
 config = SafeConfigParser()
 config.read("settings.ini")
 
@@ -135,22 +141,23 @@ for sequence in todo:
 output += "</ul><small>Automagically shipped by <a href=\"http://github.com/palfrey/murmur/\">Murmur</a></small></lj-cut>"
 print output
 
-from livejournal import LiveJournal, list2list, list2mask
+if opts.post:
+	from livejournal import LiveJournal, list2list, list2mask
 
-subject = u"Daily mutterings"
-body = output
+	subject = u"Daily mutterings"
+	body = output
 
-username = config.get("livejournal","username")
-password = config.get("livejournal","password")
-usejournal = username
+	username = config.get("livejournal","username")
+	password = config.get("livejournal","password")
+	usejournal = username
 
-lj = LiveJournal (0)
-info = lj.login (username, password)
-security = list2mask (config.get("livejournal","security"), info.friendgroups)
+	lj = LiveJournal (0)
+	info = lj.login (username, password)
+	security = list2mask (config.get("livejournal","security"), info.friendgroups)
 
-entry = lj.postevent (body,
-				subject = subject,
-				security = security,
-				props = {"taglist":"twitter"})
+	entry = lj.postevent (body,
+					subject = subject,
+					security = security,
+					props = {"taglist":"twitter"})
 
-print 'Posted'
+	print 'Posted'
