@@ -62,9 +62,18 @@ class CachedApi(twitter.Api):
 
 
 try:
-	password=config.get("twitter","password")
+	password = config.get("twitter","password")
 except NoOptionError: # no password = unprotected updates only
 	password = None
+
+if password!=None:
+	try:
+		auth = config.get("twitter","authenticated")
+		if not eval(auth): # assume some value that resolves to False
+			print "Clearing password due to auth = False"
+			password = None
+	except NoOptionError: # no authenticated field = work from password
+		pass
 
 yesterday = date.today()-timedelta(1)
 
