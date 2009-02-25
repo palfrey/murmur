@@ -4,7 +4,7 @@ username=your_twitter_name
 [livejournal]
 username=your_lj_username
 password=your_lj_password
-security=public
+security=public # can also be private or friends
 
 [mapping]
 your_twitter_friend = your_friends_lj_name
