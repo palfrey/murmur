@@ -1,0 +1,2 @@
+- Hack around the "replies to a message" problem by using http://search.twitter.com/search.atom?lang=en&q=@palfrey&rpp=100 (replacing palfret with username)
+- Actually document the bloody thing
