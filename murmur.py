@@ -53,7 +53,7 @@ class CachedApi(twitter.Api):
 		except (OSError,IOError,EOFError):
 			self._doLogin()
 			try:
-				data = twitter.Api.GetUserTimeline(self,user)
+				data = twitter.Api.GetUserTimeline(self,user,count=count,since=since)
 				dump(data,file(pname,"wb"))
 			except twitter.TwitterAuthError,e:
 				dump(e,file(pname,"wb"))
