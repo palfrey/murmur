@@ -76,9 +76,10 @@ if password!=None:
 		pass
 
 yesterday = date.today()-timedelta(1)
+yesterday_string = strftime("%a, %d-%b-%Y %H:%M:%S GMT",yesterday.timetuple())
 
 api = CachedApi(username=username,password=password,max_age=60*60)
-statuses = api.GetUserTimeline(username)
+statuses = api.GetUserTimeline(username,since=yesterday_string,count=200)
 todo = []
 used = []
 for s in statuses:
@@ -96,7 +97,7 @@ for s in statuses:
 			othername = top.in_reply_to_screen_name
 			#print "other",othername,sequence
 			try:
-				otherstatus = api.GetUserTimeline(othername)
+				otherstatus = api.GetUserTimeline(othername,count=200,since=yesterday_string)
 			except twitter.TwitterAuthError: # assume protected updates
 				break
 			found = False
