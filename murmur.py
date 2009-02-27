@@ -118,9 +118,9 @@ for s in statuses:
 					top = o
 					found = True
 					break
-			else:
-				break
 			if not found:
+				print "can't find reply for %d"%top.in_reply_to_status_id,top.text
+				print sorted([x.id for x in otherstatus])
 				break
 		else:
 			break
