@@ -170,7 +170,7 @@ if opts.post:
 	info = lj.login (username, password)
 	security = list2mask (config.get("livejournal","security"), info.friendgroups)
 
-	entry = lj.postevent (body,
+	entry = lj.postevent (unicode(body),
 					subject = subject,
 					security = security,
 					props = {"taglist":"twitter"})
