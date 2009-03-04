@@ -7,14 +7,8 @@ from datetime import date, timedelta
 
 from optparse import OptionParser
 
-parser = OptionParser()
-parser.add_option("-n","--no-post",help="Don't post, just work out what we would have posted",dest="post",action="store_false",default=True)
-(opts,args) = parser.parse_args()
-
-config = SafeConfigParser()
-config.read("settings.ini")
-
-username = config.get("twitter","username")
+yesterday = date.today()-timedelta(1)
+yesterday_string = strftime("%a, %d-%b-%Y %H:%M:%S GMT",yesterday.timetuple())
 
 class CachedApi(twitter.Api):
 	def __init__(self,*args,**kwargs):
@@ -59,35 +53,13 @@ class CachedApi(twitter.Api):
 				dump(e,file(pname,"wb"))
 				raise
 		return data
-
-
-try:
-	password = config.get("twitter","password")
-except NoOptionError: # no password = unprotected updates only
-	password = None
-
-if password!=None:
-	try:
-		auth = config.get("twitter","authenticated")
-		if not eval(auth): # assume some value that resolves to False
-			print "Clearing password due to auth = False"
-			password = None
-	except NoOptionError: # no authenticated field = work from password
-		pass
-
-yesterday = date.today()-timedelta(1)
-yesterday_string = strftime("%a, %d-%b-%Y %H:%M:%S GMT",yesterday.timetuple())
-
-api = CachedApi(username=username,password=password,max_age=60*60)
-statuses = api.GetUserTimeline(username,since=yesterday_string,count=200)
-todo = []
 used = []
-for s in statuses:
-	if s.id in used:
-		continue
+
+def gen_thread(s): # generates a thread of "stuff" based on an initial status
+	global used
 	when = strptime(s.created_at,"%a %b %d %H:%M:%S +0000 %Y")
 	if date(*when[:3]) != yesterday:
-		continue
+		return None
 	s.when = when
 	top = s
 	sequence = [s]
@@ -124,55 +96,95 @@ for s in statuses:
 				break
 		else:
 			break
-	todo.append(sequence)
+	return sequence
 
-todo.sort(lambda x,y:cmp(x[0].when,y[0].when))
+def decide_password(config):
+	try:
+		password = config.get("twitter","password")
+	except NoOptionError: # no password = unprotected updates only
+		password = None
 
-output = "<lj-cut text=\"tweets\"><ul>"
-for sequence in todo:
-	output += "<li>"
-	for item in sequence:
-		when = strptime(item.created_at,"%a %b %d %H:%M:%S +0000 %Y")
-		name = None
+	if password!=None:
 		try:
-			name = config.get("mapping",item.user.screen_name)
-			if name == "":
-				name = None
-			else:
-				name = "<lj user=\"%s\">"%name
-		except NoOptionError:
+			auth = config.get("twitter","authenticated")
+			if not eval(auth): # assume some value that resolves to False
+				print "Clearing password due to auth = False"
+				password = None
+		except NoOptionError: # no authenticated field = work from password
 			pass
-		if name == None:
-			name = "<img src=\"https://assets1.twitter.com/images/favicon.ico\" /><a href=\"http://twitter.com/%s\"><b>%s</b></a>"%(item.user.screen_name,item.user.screen_name)
-		if item.text[0] == item.text[0].upper():
-			between = ": "
-		else:
-			between = ""
-		text = "<em>%s</em> %s %s%s <a href=\"http://twitter.com/%s/statuses/%d\">#</a>"%(strftime("%d/%m %I:%M %p",when), name, between, item.text, item.user.screen_name, item.id)
-		output+=text
-		if len(sequence)>1 and item!=sequence[-1]:
-			output +="<br />"
-	output += "</li>\n"
-output += "</ul><small>Automagically shipped by <a href=\"http://github.com/palfrey/murmur/\">Murmur</a></small></lj-cut>"
-print output
+	
+	return password
 
-if opts.post:
-	from livejournal import LiveJournal, list2list, list2mask
+config = SafeConfigParser()
+config.read("settings.ini")
 
-	subject = u"Daily mutterings"
-	body = output
+username = config.get("twitter","username")
+password = decide_password(config)
 
-	username = config.get("livejournal","username")
-	password = config.get("livejournal","password")
-	usejournal = username
+api = CachedApi(username=username,password=password,max_age=60*60)
 
-	lj = LiveJournal (0)
-	info = lj.login (username, password)
-	security = list2mask (config.get("livejournal","security"), info.friendgroups)
+if __name__  == "__main__":
 
-	entry = lj.postevent (unicode(body),
-					subject = subject,
-					security = security,
-					props = {"taglist":"twitter"})
+	parser = OptionParser()
+	parser.add_option("-n","--no-post",help="Don't post, just work out what we would have posted",dest="post",action="store_false",default=True)
+	(opts,args) = parser.parse_args()
 
-	print 'Posted'
+	statuses = api.GetUserTimeline(username,since=yesterday_string,count=200)
+	todo = []
+	for s in statuses:
+		if s.id in used:
+			continue
+		th = gen_thread(s)
+		if th!=None:
+			todo.append(th)
+
+	todo.sort(lambda x,y:cmp(x[0].when,y[0].when))
+
+	output = "<lj-cut text=\"tweets\"><ul>"
+	for sequence in todo:
+		output += "<li>"
+		for item in sequence:
+			when = strptime(item.created_at,"%a %b %d %H:%M:%S +0000 %Y")
+			name = None
+			try:
+				name = config.get("mapping",item.user.screen_name)
+				if name == "":
+					name = None
+				else:
+					name = "<lj user=\"%s\">"%name
+			except NoOptionError:
+				pass
+			if name == None:
+				name = "<img src=\"https://assets1.twitter.com/images/favicon.ico\" /><a href=\"http://twitter.com/%s\"><b>%s</b></a>"%(item.user.screen_name,item.user.screen_name)
+			if item.text[0] == item.text[0].upper():
+				between = ": "
+			else:
+				between = ""
+			text = "<em>%s</em> %s %s%s <a href=\"http://twitter.com/%s/statuses/%d\">#</a>"%(strftime("%d/%m %I:%M %p",when), name, between, item.text, item.user.screen_name, item.id)
+			output+=text
+			if len(sequence)>1 and item!=sequence[-1]:
+				output +="<br />"
+		output += "</li>\n"
+	output += "</ul><small>Automagically shipped by <a href=\"http://github.com/palfrey/murmur/\">Murmur</a></small></lj-cut>"
+	print output
+
+	if opts.post:
+		from livejournal import LiveJournal, list2list, list2mask
+
+		subject = u"Daily mutterings"
+		body = output
+
+		username = config.get("livejournal","username")
+		password = config.get("livejournal","password")
+		usejournal = username
+
+		lj = LiveJournal (0)
+		info = lj.login (username, password)
+		security = list2mask (config.get("livejournal","security"), info.friendgroups)
+
+		entry = lj.postevent (unicode(body),
+						subject = subject,
+						security = security,
+						props = {"taglist":"twitter"})
+
+		print 'Posted'
