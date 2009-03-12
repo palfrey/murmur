@@ -19,8 +19,6 @@ except (OSError,IOError,EOFError):
 	replies = urlopen("http://search.twitter.com/search.atom?lang=en&q=@%s&rpp=100"%username).read()
 	dump(replies,file(pname,"wb"))
 
-password = decide_password(config)
-api = CachedApi(username=username,password=password,max_age=60*60)
 status = compile("http://twitter.com/([^\/]+)/statuses/(\d+)")
 
 dom = parseString(replies)
