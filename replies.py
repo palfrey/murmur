@@ -3,13 +3,17 @@ from urllib2 import urlopen
 from ConfigParser import SafeConfigParser, NoOptionError
 from xml.dom.minidom import parseString
 from re import compile
-from murmur import gen_thread, CachedApi, decide_password, yesterday_string
+from murmur import gen_thread, api, decide_password, yesterday_string
+from os.path import getmtime,exists
+from time import time
 
 config = SafeConfigParser()
 config.read("settings.ini")
 username = config.get("twitter","username")
 pname = "replies-%s.pickle"%username
 try:
+	if exists(pname) and time()-getmtime(pname)>60*60: # an hour
+		raise IOError
 	replies = load(file(pname))
 except (OSError,IOError,EOFError):
 	replies = urlopen("http://search.twitter.com/search.atom?lang=en&q=@%s&rpp=100"%username).read()
