@@ -166,7 +166,10 @@ if __name__  == "__main__":
 				output +="<br />"
 		output += "</li>\n"
 	output += "</ul><small>Automagically shipped by <a href=\"http://github.com/palfrey/murmur/\">Murmur</a></small></lj-cut>"
-	print output
+	try:
+		print output
+	except UnicodeEncodeError:
+		print "Can't print output due to unicode issues"
 
 	if opts.post:
 		from livejournal import LiveJournal, list2list, list2mask
