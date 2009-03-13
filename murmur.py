@@ -196,7 +196,7 @@ if __name__  == "__main__":
 			except NoOptionError:
 				pass
 			if name == None:
-				name = "<img src=\"https://assets1.twitter.com/images/favicon.ico\" /><a href=\"http://twitter.com/%s\"><b>%s</b></a>"%(item.user.screen_name,item.user.screen_name)
+				name = "<img src=\"https://assets1.twitter.com/images/favicon.ico\" width=\"17\" height=\"17\"/><a href=\"http://twitter.com/%s\"><b>%s</b></a>"%(item.user.screen_name,item.user.screen_name)
 			if item.text[0] == item.text[0].upper():
 				between = ": "
 			else:
