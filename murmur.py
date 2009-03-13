@@ -8,6 +8,7 @@ from optparse import OptionParser
 
 from re import compile
 from xml.dom.minidom import parseString
+from urllib2 import urlopen
 
 yesterday = date.today()-timedelta(1)
 yesterday_string = strftime("%a, %d-%b-%Y %H:%M:%S GMT",yesterday.timetuple())
