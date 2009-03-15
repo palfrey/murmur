@@ -123,6 +123,8 @@ def build_replies(username):
 			continue
 		(otheruser, sid) = status.match(href).groups()
 		sid = int(sid)
+		if sid in used:
+			continue
 		#print "finding for %s"%otheruser,sid
 		statuses = api.GetUserTimeline(otheruser,since=yesterday_string,count=200)
 		#print [s.id for s in statuses]
