@@ -58,7 +58,15 @@ class CachedApi(twitter.Api):
 		return data
 used = []
 
-def gen_thread(s): # generates a thread of "stuff" based on an initial status
+def strip_front(raw):
+	while True:
+		x = raw[0]
+		raw = raw[1:]
+		if x in (" ","\t"):
+			break
+	return raw
+
+def gen_thread(s, existing=[]): # generates a thread of "stuff" based on an initial status
 	global used
 	when = strptime(s.created_at,"%a %b %d %H:%M:%S +0000 %Y")
 	if date(*when[:3]) != yesterday:
@@ -81,13 +89,7 @@ def gen_thread(s): # generates a thread of "stuff" based on an initial status
 					if o.id in used:
 						break
 					o.when = strptime(o.created_at,"%a %b %d %H:%M:%S +0000 %Y")
-					raw = top.text
-					while True:
-						x = raw[0]
-						raw = raw[1:]
-						if x in (" ","\t"):
-							break
-					top.text = raw
+					top.text = strip_front(top.text)
 					used.append(o.id)
 					sequence = [o] + sequence
 					top = o
@@ -95,13 +97,19 @@ def gen_thread(s): # generates a thread of "stuff" based on an initial status
 					break
 			if not found:
 				print "can't find reply for %d"%top.in_reply_to_status_id,top.text
+				for item in existing:
+					if item[-1].id == top.in_reply_to_status_id:
+						print "found in existing!",[(x.id,x.text) for x in item]
+						top.text = strip_front(top.text)
+						item.extend(sequence)
+						return None
 				print sorted([x.id for x in otherstatus])
 				break
 		else:
 			break
 	return sequence
 
-def build_replies(username):
+def build_replies(username, existing):
 	pname = "replies-%s.pickle"%username
 	try:
 		if exists(pname) and time()-getmtime(pname)>60*60: # an hour
@@ -130,7 +138,7 @@ def build_replies(username):
 		#print [s.id for s in statuses]
 		for s in statuses:
 			if s.id == sid:
-				th = gen_thread(s)
+				th = gen_thread(s, existing)
 				if th!=None:
 					yield th
 					break
@@ -174,11 +182,11 @@ if __name__  == "__main__":
 	for s in statuses:
 		if s.id in used:
 			continue
-		th = gen_thread(s)
+		th = gen_thread(s, todo)
 		if th!=None:
 			todo.append(th)
 
-	for th in build_replies(username):
+	for th in build_replies(username, todo):
 		todo.append(th)
 
 	todo.sort(lambda x,y:cmp(x[0].when,y[0].when))
