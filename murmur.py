@@ -38,6 +38,23 @@ class CachedApi(twitter.Api):
 		twitter.Api.__init__(self,username=self.username,password=self.password)
 		self.logged_in = True
 
+	def GetStatus(self, id):
+		pname ="status-%d.pickle"%id
+		try:
+			data = load(file(pname))
+			if isinstance(data,twitter.TwitterAuthError):
+				raise data
+			else:
+				return data
+		except (OSError,IOError,EOFError):
+			self._doLogin()
+			try:
+				data = twitter.Api.GetStatus(self,id)
+				dump(data,file(pname,"wb"))
+			except twitter.TwitterAuthError,e:
+				dump(e,file(pname,"wb"))
+				raise
+		return data
 	def GetUserTimeline(self, user=None, count=None, since=None, page=1):
 		pname ="timeline-%s-%d.pickle"%(user,page)
 		try:
