@@ -137,8 +137,13 @@ def gen_thread(s, existing=[]): # generates a thread of "stuff" based on an init
 						top.text = strip_front(top.text)
 						item.extend(sequence)
 						return None
-				print sorted([x.id for x in otherstatus])
-				break
+				print "Using direct methods"
+				o = api.GetStatus(top.in_reply_to_status_id)
+				top.text = strip_front(top.text)
+				o.when = get_create_time(o)
+				used.append(o.id)
+				sequence = [o] + sequence
+				top = o
 		else:
 			break
 	return sequence
