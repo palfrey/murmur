@@ -66,9 +66,12 @@ def strip_front(raw):
 			break
 	return raw
 
+def get_create_time(s):
+	return strptime(s.created_at,"%a %b %d %H:%M:%S +0000 %Y")
+
 def gen_thread(s, existing=[]): # generates a thread of "stuff" based on an initial status
 	global used
-	when = strptime(s.created_at,"%a %b %d %H:%M:%S +0000 %Y")
+	when = get_create_time(s)
 	if date(*when[:3]) != yesterday:
 		return None
 	s.when = when
@@ -100,7 +103,7 @@ def gen_thread(s, existing=[]): # generates a thread of "stuff" based on an init
 				if o.id == top.in_reply_to_status_id:
 					if o.id in used:
 						break
-					o.when = strptime(o.created_at,"%a %b %d %H:%M:%S +0000 %Y")
+					o.when = get_create_time(o)
 					top.text = strip_front(top.text)
 					used.append(o.id)
 					sequence = [o] + sequence
