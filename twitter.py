@@ -1339,7 +1339,7 @@ class Api(object):
     data = simplejson.loads(json)
     return [Status.NewFromJsonDict(x) for x in data]
 
-  def GetUserTimeline(self, user=None, count=None, since=None):
+  def GetUserTimeline(self, user=None, count=None, since=None, page=None):
     '''Fetch the sequence of public twitter.Status messages for a single user.
 
     The twitter.Api instance must be authenticated if the user is private.
@@ -1366,6 +1366,8 @@ class Api(object):
       parameters['count'] = count
     if since:
       parameters['since'] = since
+    if page:
+      parameters['page'] = page
     if user:
       url = 'http://twitter.com/statuses/user_timeline/%s.json' % user
     elif not user and not self._username:
