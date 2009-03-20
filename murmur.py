@@ -85,6 +85,8 @@ def gen_thread(s, existing=[]): # generates a thread of "stuff" based on an init
 				while True:
 					print "Getting page %d for %s"%(page,othername)
 					extra = api.GetUserTimeline(othername,count=200,since=two_days_string, page=page)
+					if extra == []:
+						break
 					otherstatus.extend(extra)
 					when = get_create_time(extra[-1])
 					print "yesterday",yesterday,"last",date(*when[:3])
