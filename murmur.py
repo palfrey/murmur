@@ -36,8 +36,8 @@ class CachedApi(twitter.Api):
 		twitter.Api.__init__(self,username=self.username,password=self.password)
 		self.logged_in = True
 
-	def GetUserTimeline(self, user=None, count=None, since=None):
-		pname ="timeline-%s.pickle"%user
+	def GetUserTimeline(self, user=None, count=None, since=None, page=1):
+		pname ="timeline-%s-%d.pickle"%(user,page)
 		try:
 			if self.max_age==-1 or time()-getmtime(pname)<self.max_age:
 				data = load(file(pname))
@@ -50,7 +50,7 @@ class CachedApi(twitter.Api):
 		except (OSError,IOError,EOFError):
 			self._doLogin()
 			try:
-				data = twitter.Api.GetUserTimeline(self,user,count=count,since=since)
+				data = twitter.Api.GetUserTimeline(self,user,count=count,since=since, page=page)
 				dump(data,file(pname,"wb"))
 			except twitter.TwitterAuthError,e:
 				dump(e,file(pname,"wb"))
@@ -80,7 +80,17 @@ def gen_thread(s, existing=[]): # generates a thread of "stuff" based on an init
 			othername = top.in_reply_to_screen_name
 			#print "other",othername,sequence
 			try:
-				otherstatus = api.GetUserTimeline(othername,count=200,since=yesterday_string)
+				otherstatus = []
+				page = 1
+				while True:
+					print "Getting page %d for %s"%(page,othername)
+					extra = api.GetUserTimeline(othername,count=200,since=two_days_string, page=page)
+					otherstatus.extend(extra)
+					when = get_create_time(extra[-1])
+					print "yesterday",yesterday,"last",date(*when[:3])
+					if date(*when[:3]) < yesterday:
+						break
+					page+=1
 			except twitter.TwitterAuthError: # assume protected updates
 				break
 			found = False
