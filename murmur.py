@@ -12,6 +12,8 @@ from urllib2 import urlopen
 
 yesterday = date.today()-timedelta(1)
 yesterday_string = strftime("%a, %d-%b-%Y %H:%M:%S GMT",yesterday.timetuple())
+two_days = date.today()-timedelta(2)
+two_days_string = strftime("%a, %d-%b-%Y %H:%M:%S GMT",two_days.timetuple())
 
 class CachedApi(twitter.Api):
 	def __init__(self,*args,**kwargs):
@@ -149,7 +151,7 @@ def build_replies(username, existing):
 		if sid in used:
 			continue
 		#print "finding for %s"%otheruser,sid
-		statuses = api.GetUserTimeline(otheruser,since=yesterday_string,count=200)
+		statuses = api.GetUserTimeline(otheruser,since=two_days_string,count=200)
 		#print [s.id for s in statuses]
 		for s in statuses:
 			if s.id == sid:
