@@ -1,4 +1,2 @@
 - Handle threaded replies? e.g. http://palfrey.livejournal.com/209681.html and the extra replies not being added
-- Let replies (from build_replies) extend existing threads. Possibly linked to threaded replies.
-- Retrieve multiple timeline pages, as Twitter only hands back <20 even with limit set to 200 (documented max)
 - Actually document the bloody thing
