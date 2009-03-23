@@ -139,6 +139,8 @@ def gen_thread(s, existing=[]): # generates a thread of "stuff" based on an init
 						return None
 				print "Using direct methods"
 				o = api.GetStatus(top.in_reply_to_status_id)
+				if o.id in used:
+					break
 				top.text = strip_front(top.text)
 				o.when = get_create_time(o)
 				used.append(o.id)
