@@ -232,6 +232,7 @@ if __name__  == "__main__":
 
 	todo.sort(lambda x,y:cmp(x[0].when,y[0].when))
 
+	print
 	output = "<lj-cut text=\"tweets\"><ul>"
 	for sequence in todo:
 		output += "<li>"
@@ -243,20 +244,25 @@ if __name__  == "__main__":
 				if name == "":
 					name = None
 				else:
+					print "%s :"%name,
 					name = "<lj user=\"%s\">"%name
 			except NoOptionError:
 				pass
 			if name == None:
 				name = "<img src=\"https://assets1.twitter.com/images/favicon.ico\" width=\"17\" height=\"17\"/><a href=\"http://twitter.com/%s\"><b>%s</b></a>"%(item.user.screen_name,item.user.screen_name)
+				print "%s :"%item.user.screen_name,
 			if item.text[0] == item.text[0].upper():
 				between = ": "
 			else:
 				between = ""
 			text = "<em>%s</em> %s %s%s <a href=\"http://twitter.com/%s/statuses/%d\">#</a>"%(strftime("%d/%m %I:%M %p",when), name, between, item.text, item.user.screen_name, item.id)
+			print "%s"%item.text,
 			output+=text
 			if len(sequence)>1 and item!=sequence[-1]:
+				print ""
 				output +="<br />"
 		output += "</li>\n"
+		print "\n"
 	output += "</ul><small>Automagically shipped by <a href=\"http://github.com/palfrey/murmur/\">Murmur</a></small></lj-cut>"
 	try:
 		print output
