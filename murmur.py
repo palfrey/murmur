@@ -75,7 +75,6 @@ class CachedApi(twitter.Api):
 				dump(e,file(pname,"wb"))
 				raise
 		return data
-used = []
 
 def strip_front(raw):
 	while True:
@@ -88,129 +87,150 @@ def strip_front(raw):
 def get_create_time(s):
 	return strptime(s.created_at,"%a %b %d %H:%M:%S +0000 %Y")
 
-def gen_thread(s, existing=[]): # generates a thread of "stuff" based on an initial status
-	global used
-	when = get_create_time(s)
-	if date(*when[:3]) != yesterday:
-		return None
-	s.when = when
-	top = s
-	sequence = [s]
-	used.append(s.id)
-	while True:
-		if top.in_reply_to_status_id!=None: # reply
-			othername = top.in_reply_to_screen_name
-			#print "other",othername,sequence
-			try:
-				otherstatus = []
-				page = 1
-				while True:
-					print "Getting page %d for %s"%(page,othername)
-					extra = api.GetUserTimeline(othername,count=200,since=two_days_string, page=page)
-					if extra == []:
+class Murmur:
+	used = []
+
+	def __init__(self):
+		self.config = SafeConfigParser()
+		self.config.read("settings.ini")
+
+		self.username = self.config.get("twitter","username")
+		self.password = self._decide_password()
+
+		self.api = CachedApi(username=self.username,password=self.password,max_age=60*60)
+
+	def gen_thread(self, s, existing=[]): # generates a thread of "stuff" based on an initial status
+		when = get_create_time(s)
+		if date(*when[:3]) != yesterday:
+			return None
+		s.when = when
+		top = s
+		sequence = [s]
+		self.used.append(s.id)
+		while True:
+			if top.in_reply_to_status_id!=None: # reply
+				othername = top.in_reply_to_screen_name
+				#print "other",othername,sequence
+				try:
+					otherstatus = []
+					page = 1
+					while True:
+						print "Getting page %d for %s"%(page,othername)
+						extra = self.api.GetUserTimeline(othername,count=200,since=two_days_string, page=page)
+						if extra == []:
+							break
+						otherstatus.extend(extra)
+						when = get_create_time(extra[-1])
+						print "yesterday",yesterday,"last",date(*when[:3])
+						if date(*when[:3]) < yesterday:
+							break
+						page+=1
+				except twitter.TwitterAuthError: # assume protected updates
+					break
+				found = False
+				for o in otherstatus:
+					if o.id == top.in_reply_to_status_id:
+						if o.id in self.used:
+							break
+						o.when = get_create_time(o)
+						top.text = strip_front(top.text)
+						self.used.append(o.id)
+						sequence = [o] + sequence
+						top = o
+						found = True
 						break
-					otherstatus.extend(extra)
-					when = get_create_time(extra[-1])
-					print "yesterday",yesterday,"last",date(*when[:3])
-					if date(*when[:3]) < yesterday:
+				if not found:
+					print "can't find reply for %d"%top.in_reply_to_status_id,top.text
+					for item in existing:
+						if item[-1].id == top.in_reply_to_status_id:
+							print "found in existing!",[(x.id,x.text) for x in item]
+							top.text = strip_front(top.text)
+							item.extend(sequence)
+							return None
+					print "Using direct methods"
+					o = self.api.GetStatus(top.in_reply_to_status_id)
+					if o.id in self.used:
 						break
-					page+=1
-			except twitter.TwitterAuthError: # assume protected updates
-				break
-			found = False
-			for o in otherstatus:
-				if o.id == top.in_reply_to_status_id:
-					if o.id in used:
-						break
-					o.when = get_create_time(o)
 					top.text = strip_front(top.text)
-					used.append(o.id)
+					o.when = get_create_time(o)
+					self.used.append(o.id)
 					sequence = [o] + sequence
 					top = o
-					found = True
-					break
-			if not found:
-				print "can't find reply for %d"%top.in_reply_to_status_id,top.text
-				for item in existing:
-					if item[-1].id == top.in_reply_to_status_id:
-						print "found in existing!",[(x.id,x.text) for x in item]
-						top.text = strip_front(top.text)
-						item.extend(sequence)
-						return None
-				print "Using direct methods"
-				o = api.GetStatus(top.in_reply_to_status_id)
-				if o.id in used:
-					break
-				top.text = strip_front(top.text)
-				o.when = get_create_time(o)
-				used.append(o.id)
-				sequence = [o] + sequence
-				top = o
-		else:
-			break
-	return sequence
+			else:
+				break
+		return sequence
 
-def build_replies(username, existing):
-	pname = "replies-%s.pickle"%username
-	try:
-		if exists(pname) and time()-getmtime(pname)>60*60: # an hour
-			raise IOError
-		replies = load(file(pname))
-	except (OSError,IOError,EOFError):
-		replies = urlopen("http://search.twitter.com/search.atom?lang=en&q=@%s&rpp=100"%username).read()
-		dump(replies,file(pname,"wb"))
-
-	status = compile("http://twitter.com/([^\/]+)/statuses/(\d+)")
-
-	dom = parseString(replies)
-	links = dom.getElementsByTagName("link")
-	for l in links:
-		if l.getAttribute("type")!="text/html": # images, other links, all ignorable
-			continue
-		href = l.getAttribute("href")
-		if href.find("/statuses/")==-1: # not a status
-			continue
-		(otheruser, sid) = status.match(href).groups()
-		sid = int(sid)
-		if sid in used:
-			continue
-		#print "finding for %s"%otheruser,sid
-		statuses = api.GetUserTimeline(otheruser,since=two_days_string,count=200)
-		#print [s.id for s in statuses]
-		for s in statuses:
-			if s.id == sid:
-				th = gen_thread(s, existing)
-				if th!=None:
-					yield th
-					break
-				#print "found",sid,s
-		#else:
-			#print "not found",sid,s
-
-def decide_password(config):
-	try:
-		password = config.get("twitter","password")
-	except NoOptionError: # no password = unprotected updates only
-		password = None
-
-	if password!=None:
+	def build_replies(self, username=None, existing=[]):
+		if username == None:
+			username = self.username
+		pname = "replies-%s.pickle"%username
 		try:
-			auth = config.get("twitter","authenticated")
-			if not eval(auth): # assume some value that resolves to False
-				print "Clearing password due to auth = False"
-				password = None
-		except NoOptionError: # no authenticated field = work from password
-			pass
-	
-	return password
+			if exists(pname) and time()-getmtime(pname)>60*60: # an hour
+				raise IOError
+			replies = load(file(pname))
+		except (OSError,IOError,EOFError):
+			replies = urlopen("http://search.twitter.com/search.atom?lang=en&q=@%s&rpp=100"%username).read()
+			dump(replies,file(pname,"wb"))
 
-config = SafeConfigParser()
-config.read("settings.ini")
+		status = compile("http://twitter.com/([^\/]+)/statuses/(\d+)")
 
-username = config.get("twitter","username")
-password = decide_password(config)
+		dom = parseString(replies)
+		links = dom.getElementsByTagName("link")
+		for l in links:
+			if l.getAttribute("type")!="text/html": # images, other links, all ignorable
+				continue
+			href = l.getAttribute("href")
+			if href.find("/statuses/")==-1: # not a status
+				continue
+			(otheruser, sid) = status.match(href).groups()
+			sid = int(sid)
+			if sid in self.used:
+				continue
+			#print "finding for %s"%otheruser,sid
+			statuses = self.api.GetUserTimeline(otheruser,since=two_days_string,count=200)
+			#print [s.id for s in statuses]
+			for s in statuses:
+				if s.id == sid:
+					th = self.gen_thread(s, existing)
+					if th!=None:
+						yield th
+						break
+					#print "found",sid,s
+			#else:
+				#print "not found",sid,s
 
-api = CachedApi(username=username,password=password,max_age=60*60)
+	def _decide_password(self):
+		try:
+			password = self.config.get("twitter","password")
+		except NoOptionError: # no password = unprotected updates only
+			password = None
+
+		if password!=None:
+			try:
+				auth = self.config.get("twitter","authenticated")
+				if not eval(auth): # assume some value that resolves to False
+					print "Clearing password due to auth = False"
+					password = None
+			except NoOptionError: # no authenticated field = work from password
+				pass
+		
+		return password
+
+	def build_sequences(self):
+		statuses = self.api.GetUserTimeline(self.username,since=yesterday_string,count=200)
+		todo = []
+		for s in statuses:
+			if s.id in self.used:
+				continue
+			th = self.gen_thread(s, todo)
+			if th!=None:
+				todo.append(th)
+
+		for th in self.build_replies(existing=todo):
+			todo.append(th)
+
+		todo.sort(lambda x,y:cmp(x[0].when,y[0].when))
+		return todo
 
 if __name__  == "__main__":
 
@@ -218,19 +238,8 @@ if __name__  == "__main__":
 	parser.add_option("-n","--no-post",help="Don't post, just work out what we would have posted",dest="post",action="store_false",default=True)
 	(opts,args) = parser.parse_args()
 
-	statuses = api.GetUserTimeline(username,since=yesterday_string,count=200)
-	todo = []
-	for s in statuses:
-		if s.id in used:
-			continue
-		th = gen_thread(s, todo)
-		if th!=None:
-			todo.append(th)
-
-	for th in build_replies(username, todo):
-		todo.append(th)
-
-	todo.sort(lambda x,y:cmp(x[0].when,y[0].when))
+	m = Murmur()
+	todo = m.build_sequences()
 
 	print
 	output = "<lj-cut text=\"tweets\"><ul>"
@@ -240,7 +249,7 @@ if __name__  == "__main__":
 			when = strptime(item.created_at,"%a %b %d %H:%M:%S +0000 %Y")
 			name = None
 			try:
-				name = config.get("mapping",item.user.screen_name)
+				name = m.config.get("mapping",item.user.screen_name)
 				if name == "":
 					name = None
 				else:
