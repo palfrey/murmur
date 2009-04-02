@@ -5,6 +5,7 @@ from os.path import getmtime,exists
 from time import time,strptime,strftime
 from datetime import date, timedelta
 from optparse import OptionParser
+from sys import stdout
 
 from re import compile
 from xml.dom.minidom import parseString
@@ -254,17 +255,19 @@ if __name__  == "__main__":
 				if name == "":
 					name = None
 				else:
-					print "%s :"%name,
+					print name,
 					name = "<lj user=\"%s\">"%name
 			except NoOptionError:
 				pass
-			if name == None:
-				name = "<img src=\"https://assets1.twitter.com/images/favicon.ico\" width=\"17\" height=\"17\"/><a href=\"http://twitter.com/%s\"><b>%s</b></a>"%(item.user.screen_name,item.user.screen_name)
-				print "%s :"%item.user.screen_name,
 			if item.text[0] == item.text[0].upper():
 				between = ": "
 			else:
 				between = ""
+				print "",
+			if name == None:
+				name = "<img src=\"https://assets1.twitter.com/images/favicon.ico\" width=\"17\" height=\"17\"/><a href=\"http://twitter.com/%s\"><b>%s</b></a>"%(item.user.screen_name,item.user.screen_name)
+				stdout.write(item.user.screen_name)
+			stdout.write(between)
 			text = "<em>%s</em> %s %s%s <a href=\"http://twitter.com/%s/statuses/%d\">#</a>"%(strftime("%d/%m %I:%M %p",when), name, between, item.text, item.user.screen_name, item.id)
 			print "%s"%item.text,
 			output+=text
