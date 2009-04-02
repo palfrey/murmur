@@ -10,11 +10,6 @@ from re import compile
 from xml.dom.minidom import parseString
 from urllib2 import urlopen
 
-yesterday = date.today()-timedelta(1)
-yesterday_string = strftime("%a, %d-%b-%Y %H:%M:%S GMT",yesterday.timetuple())
-two_days = date.today()-timedelta(2)
-two_days_string = strftime("%a, %d-%b-%Y %H:%M:%S GMT",two_days.timetuple())
-
 class CachedApi(twitter.Api):
 	def __init__(self,*args,**kwargs):
 		if "username" in kwargs:
@@ -90,7 +85,7 @@ def get_create_time(s):
 class Murmur:
 	used = []
 
-	def __init__(self):
+	def __init__(self, day=-1):
 		self.config = SafeConfigParser()
 		self.config.read("settings.ini")
 
@@ -99,9 +94,14 @@ class Murmur:
 
 		self.api = CachedApi(username=self.username,password=self.password,max_age=60*60)
 
+		self.day = date.today()+timedelta(day)
+		self.day_string = strftime("%a, %d-%b-%Y %H:%M:%S GMT",self.day.timetuple())
+		further_back = date.today()+timedelta(day)-timedelta(1)
+		self.further_back_string = strftime("%a, %d-%b-%Y %H:%M:%S GMT",further_back.timetuple())
+
 	def gen_thread(self, s, existing=[]): # generates a thread of "stuff" based on an initial status
 		when = get_create_time(s)
-		if date(*when[:3]) != yesterday:
+		if date(*when[:3]) != self.day:
 			return None
 		s.when = when
 		top = s
@@ -116,13 +116,13 @@ class Murmur:
 					page = 1
 					while True:
 						print "Getting page %d for %s"%(page,othername)
-						extra = self.api.GetUserTimeline(othername,count=200,since=two_days_string, page=page)
+						extra = self.api.GetUserTimeline(othername,count=200,since=self.further_back_string, page=page)
 						if extra == []:
 							break
 						otherstatus.extend(extra)
 						when = get_create_time(extra[-1])
-						print "yesterday",yesterday,"last",date(*when[:3])
-						if date(*when[:3]) < yesterday:
+						print "self.day",self.day,"last",date(*when[:3])
+						if date(*when[:3]) < self.day:
 							break
 						page+=1
 				except twitter.TwitterAuthError: # assume protected updates
@@ -187,7 +187,7 @@ class Murmur:
 			if sid in self.used:
 				continue
 			#print "finding for %s"%otheruser,sid
-			statuses = self.api.GetUserTimeline(otheruser,since=two_days_string,count=200)
+			statuses = self.api.GetUserTimeline(otheruser,since=self.further_back_string,count=200)
 			#print [s.id for s in statuses]
 			for s in statuses:
 				if s.id == sid:
@@ -217,7 +217,7 @@ class Murmur:
 		return password
 
 	def build_sequences(self):
-		statuses = self.api.GetUserTimeline(self.username,since=yesterday_string,count=200)
+		statuses = self.api.GetUserTimeline(self.username,since=self.day_string,count=200)
 		todo = []
 		for s in statuses:
 			if s.id in self.used:
@@ -236,9 +236,10 @@ if __name__  == "__main__":
 
 	parser = OptionParser()
 	parser.add_option("-n","--no-post",help="Don't post, just work out what we would have posted",dest="post",action="store_false",default=True)
+	parser.add_option("-d","--days",help="Go N days back. Default is 1 (i.e. yesterday's posts)",dest="days",type="int",default=1)
 	(opts,args) = parser.parse_args()
 
-	m = Murmur()
+	m = Murmur(-opts.days)
 	todo = m.build_sequences()
 
 	print
