@@ -288,13 +288,13 @@ if __name__  == "__main__":
 		subject = u"Daily mutterings"
 		body = output
 
-		username = config.get("livejournal","username")
-		password = config.get("livejournal","password")
+		username = m.config.get("livejournal","username")
+		password = m.config.get("livejournal","password")
 		usejournal = username
 
 		lj = LiveJournal (0)
 		info = lj.login (username, password)
-		security = list2mask (config.get("livejournal","security"), info.friendgroups)
+		security = list2mask (m.config.get("livejournal","security"), info.friendgroups)
 
 		entry = lj.postevent (unicode(body),
 						subject = subject,
