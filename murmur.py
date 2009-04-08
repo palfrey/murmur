@@ -259,7 +259,7 @@ if __name__  == "__main__":
 					name = "<lj user=\"%s\">"%name
 			except NoOptionError:
 				pass
-			if item.text[0] == item.text[0].upper():
+			if item!=sequence[0] or (item.text[0].isalpha() and item.text[0] == item.text[0].upper()):
 				between = ": "
 			else:
 				between = ""
@@ -267,6 +267,8 @@ if __name__  == "__main__":
 			if name == None:
 				name = "<img src=\"https://assets1.twitter.com/images/favicon.ico\" width=\"17\" height=\"17\"/><a href=\"http://twitter.com/%s\"><b>%s</b></a>"%(item.user.screen_name,item.user.screen_name)
 				stdout.write(item.user.screen_name)
+				if between == "":
+					print " ",
 			stdout.write(between)
 			text = "<em>%s</em> %s %s%s <a href=\"http://twitter.com/%s/statuses/%d\">#</a>"%(strftime("%d/%m %I:%M %p",when), name, between, item.text, item.user.screen_name, item.id)
 			print "%s"%item.text,
