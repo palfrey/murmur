@@ -71,7 +71,7 @@ class CachedApi(twitter.Api):
 		except (OSError,IOError,EOFError):
 			self._doLogin()
 			try:
-				data = twitter.Api.GetUserTimeline(self,user,count=count,since=since, page=page)
+				data = twitter.Api.GetUserTimeline(self,user, page=page)
 				dump(data,file(pname,"wb"))
 			except twitter.TwitterAuthError,e:
 				dump(e,file(pname,"wb"))
@@ -117,9 +117,6 @@ class Murmur:
 		self.api = CachedApi(username=self.username,password=self.password,max_age=60*60)
 
 		self.day = date.today()+timedelta(day)
-		self.day_string = strftime("%a, %d-%b-%Y %H:%M:%S GMT",self.day.timetuple())
-		further_back = date.today()+timedelta(day)-timedelta(1)
-		self.further_back_string = strftime("%a, %d-%b-%Y %H:%M:%S GMT",further_back.timetuple())
 
 	def gen_thread(self, s, existing=[]): # generates a thread of "stuff" based on an initial status
 		when = get_create_time(s)
@@ -138,7 +135,7 @@ class Murmur:
 					page = 1
 					while True:
 						print "Getting page %d for %s"%(page,othername)
-						extra = self.api.GetUserTimeline(othername,count=200,since=self.further_back_string, page=page)
+						extra = self.api.GetUserTimeline(othername, page=page)
 						if extra == []:
 							break
 						otherstatus.extend(extra)
@@ -231,7 +228,7 @@ class Murmur:
 		return password
 
 	def build_sequences(self):
-		statuses = self.api.GetUserTimeline(self.username,since=self.day_string,count=200)
+		statuses = self.api.GetUserTimeline(self.username)
 		todo = []
 		for s in statuses:
 			if s.id in self.used:
