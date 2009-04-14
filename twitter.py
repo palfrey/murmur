@@ -1883,6 +1883,7 @@ class Api(object):
         try:
           url_data = opener.open(url, encoded_post_data).read()
         except urllib2.HTTPError,e:
+          print "Retrieving %s"%url
           if e.code == 401:
             raise TwitterAuthError(e.info()["Status"])
           else:
