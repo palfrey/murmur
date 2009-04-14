@@ -1,5 +1,5 @@
-*.pickle
 *.pyc
 .*.swp
 ljpy
 settings.ini
+cache

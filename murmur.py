@@ -1,7 +1,7 @@
 import twitter
 from ConfigParser import SafeConfigParser, NoOptionError
 from pickle import load,dump
-from os.path import getmtime,exists
+from os.path import getmtime,exists,join
 from time import time,strptime,strftime
 from datetime import date, timedelta
 from optparse import OptionParser
@@ -25,6 +25,11 @@ class CachedApi(twitter.Api):
 			self.logged_in = True
 			twitter.Api.__init__(self)
 		self.max_age = kwargs['max_age']
+
+		if "cache" in kwargs:
+			self.cache = kwargs["cache"]
+		else:
+			self.cache = "cache"
 	
 	def _doLogin(self):
 		if self.logged_in:
@@ -35,7 +40,7 @@ class CachedApi(twitter.Api):
 		self.logged_in = True
 
 	def GetStatus(self, id):
-		pname ="status-%d.pickle"%id
+		pname = join(self.cache,"status-%d.pickle"%id)
 		try:
 			data = load(file(pname))
 			if isinstance(data,twitter.TwitterAuthError):
@@ -51,8 +56,9 @@ class CachedApi(twitter.Api):
 				dump(e,file(pname,"wb"))
 				raise
 		return data
-	def GetUserTimeline(self, user=None, count=None, since=None, page=1):
-		pname ="timeline-%s-%d.pickle"%(user,page)
+
+	def GetUserTimeline(self, user=None, page=1):
+		pname = join(self.cache, "timeline-%s-%d.pickle"%(user,page))
 		try:
 			if self.max_age==-1 or time()-getmtime(pname)<self.max_age:
 				data = load(file(pname))
@@ -71,6 +77,21 @@ class CachedApi(twitter.Api):
 				dump(e,file(pname,"wb"))
 				raise
 		return data
+
+	def GetReplies(self, username = None):
+		if username == None:
+			assert self.username!=None
+			username = self.username
+		pname = join(self.cache, "replies-%s.pickle"%username)
+		try:
+			if exists(pname) and time()-getmtime(pname)>self.max_age:
+				raise IOError
+			replies = load(file(pname))
+		except (OSError,IOError,EOFError):
+			replies = urlopen("http://search.twitter.com/search.atom?lang=en&q=@%s&rpp=100"%username).read()
+			dump(replies,file(pname,"wb"))
+		return replies
+
 
 def strip_front(raw):
 	while True:
@@ -164,16 +185,8 @@ class Murmur:
 	def build_replies(self, username=None, existing=[]):
 		if username == None:
 			username = self.username
-		pname = "replies-%s.pickle"%username
-		try:
-			if exists(pname) and time()-getmtime(pname)>60*60: # an hour
-				raise IOError
-			replies = load(file(pname))
-		except (OSError,IOError,EOFError):
-			replies = urlopen("http://search.twitter.com/search.atom?lang=en&q=@%s&rpp=100"%username).read()
-			dump(replies,file(pname,"wb"))
-
 		status = compile("http://twitter.com/([^\/]+)/statuses/(\d+)")
+		replies = self.api.GetReplies(username = username)
 
 		dom = parseString(replies)
 		links = dom.getElementsByTagName("link")
