@@ -9,7 +9,7 @@ from sys import stdout
 
 from re import compile
 from xml.dom.minidom import parseString
-from urllib2 import urlopen
+from urllib2 import urlopen,HTTPError
 
 class CachedApi(twitter.Api):
 	def __init__(self,*args,**kwargs):
@@ -76,6 +76,8 @@ class CachedApi(twitter.Api):
 			except twitter.TwitterAuthError,e:
 				dump(e,file(pname,"wb"))
 				raise
+			except HTTPError:
+				return None
 		return data
 
 	def GetReplies(self, username = None):
@@ -198,7 +200,9 @@ class Murmur:
 			if sid in self.used:
 				continue
 			#print "finding for %s"%otheruser,sid
-			statuses = self.api.GetUserTimeline(otheruser,since=self.further_back_string,count=200)
+			statuses = self.api.GetUserTimeline(otheruser)
+			if statuses == None: # couldn't find user
+				continue
 			#print [s.id for s in statuses]
 			for s in statuses:
 				if s.id == sid:
