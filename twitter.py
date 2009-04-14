@@ -1980,3 +1980,5 @@ class _FileCache(object):
 
   def _GetPrefix(self,hashed_key):
     return os.path.sep.join(hashed_key[0:_FileCache.DEPTH])
+
+# vim:tabstop=2:shiftwidth=2:expandtab:
