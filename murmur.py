@@ -105,13 +105,13 @@ class Murmur:
 		if date(*when[:3]) != self.day:
 			return None
 		s.when = when
-		top = s
-		sequence = [s]
+		s.children = []
+		tree = s
 		self.used.append(s.id)
 		while True:
-			if top.in_reply_to_status_id!=None: # reply
-				othername = top.in_reply_to_screen_name
-				#print "other",othername,sequence
+			if tree.in_reply_to_status_id!=None: # reply
+				othername = tree.in_reply_to_screen_name
+				#print "other",othername,tree
 				try:
 					otherstatus = []
 					page = 1
@@ -130,36 +130,39 @@ class Murmur:
 					break
 				found = False
 				for o in otherstatus:
-					if o.id == top.in_reply_to_status_id:
+					if o.id == tree.in_reply_to_status_id:
 						if o.id in self.used:
 							break
 						o.when = get_create_time(o)
-						top.text = strip_front(top.text)
+						tree.text = strip_front(tree.text)
 						self.used.append(o.id)
-						sequence = [o] + sequence
-						top = o
+						o.children = [tree]
+						tree = o
+						print "found",o.id,tree.children,o.text
 						found = True
 						break
 				if not found:
-					print "can't find reply for %d"%top.in_reply_to_status_id,top.text
+					print "can't find reply for %d"%tree.in_reply_to_status_id,tree.text
 					for item in existing:
-						if item[-1].id == top.in_reply_to_status_id:
-							print "found in existing!",[(x.id,x.text) for x in item]
-							top.text = strip_front(top.text)
-							item.extend(sequence)
+						if item.id == tree.in_reply_to_status_id:
+							print "found in existing!",(item.id,item.text)
+							tree.text = strip_front(tree.text)
+							item.children.append(tree)
 							return None
 					print "Using direct methods"
-					o = self.api.GetStatus(top.in_reply_to_status_id)
+					o = self.api.GetStatus(tree.in_reply_to_status_id)
 					if o.id in self.used:
 						break
-					top.text = strip_front(top.text)
+					tree.text = strip_front(tree.text)
 					o.when = get_create_time(o)
 					self.used.append(o.id)
-					sequence = [o] + sequence
-					top = o
+					o.children = [tree]
+					tree = o
 			else:
+				#print "not reply",tree
 				break
-		return sequence
+		print "returned",tree.text,[x.text for x in tree.children]
+		return tree
 
 	def build_replies(self, username=None, existing=[]):
 		if username == None:
@@ -217,7 +220,7 @@ class Murmur:
 		
 		return password
 
-	def build_sequences(self):
+	def build_trees(self):
 		statuses = self.api.GetUserTimeline(self.username,since=self.day_string,count=200)
 		todo = []
 		for s in statuses:
@@ -230,7 +233,7 @@ class Murmur:
 		for th in self.build_replies(existing=todo):
 			todo.append(th)
 
-		todo.sort(lambda x,y:cmp(x[0].when,y[0].when))
+		todo.sort(lambda x,y:cmp(x.when,y.when))
 		return todo
 
 if __name__  == "__main__":
@@ -241,13 +244,14 @@ if __name__  == "__main__":
 	(opts,args) = parser.parse_args()
 
 	m = Murmur(-opts.days)
-	todo = m.build_sequences()
+	todo = m.build_trees()
 
 	print
 	output = "<lj-cut text=\"tweets\"><ul>"
-	for sequence in todo:
+	for tree in todo:
+		print "tree",tree.children
 		output += "<li>"
-		for item in sequence:
+		for item in tree:
 			when = strptime(item.created_at,"%a %b %d %H:%M:%S +0000 %Y")
 			name = None
 			try:
@@ -271,7 +275,7 @@ if __name__  == "__main__":
 			text = "<em>%s</em> %s %s%s <a href=\"http://twitter.com/%s/statuses/%d\">#</a>"%(strftime("%d/%m %I:%M %p",when), name, between, item.text, item.user.screen_name, item.id)
 			print "%s"%item.text,
 			output+=text
-			if len(sequence)>1 and item!=sequence[-1]:
+			if len(tree)>1 and item!=tree[-1]:
 				print ""
 				output +="<br />"
 		output += "</li>\n"
