@@ -2,6 +2,7 @@ import twitter
 from ConfigParser import SafeConfigParser, NoOptionError
 from pickle import load,dump
 from os.path import getmtime,exists,join
+from os import mkdir
 from time import time,strptime,strftime
 from datetime import date, timedelta
 from optparse import OptionParser
@@ -30,6 +31,8 @@ class CachedApi(twitter.Api):
 			self.cache = kwargs["cache"]
 		else:
 			self.cache = "cache"
+		if not exists(self.cache):
+			mkdir(self.cache)
 	
 	def _doLogin(self):
 		if self.logged_in:
