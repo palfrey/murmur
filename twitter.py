@@ -1880,15 +1880,22 @@ class Api(object):
 
       # If the cached version is outdated then fetch another and store it
       if not last_cached or time.time() >= last_cached + self._cache_timeout:
-        try:
-          url_data = opener.open(url, encoded_post_data).read()
-        except urllib2.HTTPError,e:
-          print "Retrieving %s"%url
-          if e.code == 401:
-            raise TwitterAuthError(e.info()["Status"])
-          else:
-            raise
-        self._cache.Set(key, url_data)
+        while True:
+          try:
+            url_data = opener.open(url, encoded_post_data).read()
+          except urllib2.HTTPError,e:
+            print "Retrieving %s"%url
+            if e.code == 401:
+              raise TwitterAuthError(e.info()["Status"])
+            elif e.code == 502: # bad gateway, Twitter are being crap
+              print "Twitter returned 502, waiting"
+              #wait 5 seconds, then try again
+              time.sleep(5)
+              continue
+            else:
+              raise
+          self._cache.Set(key, url_data)
+          break
       else:
         url_data = self._cache.Get(key)
 
