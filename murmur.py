@@ -311,7 +311,11 @@ if __name__  == "__main__":
 		password = m.config.get("livejournal","password")
 		usejournal = username
 
-		lj = LiveJournal (0)
+		try:
+			xmlrpc = m.config.get("livejournal","xmlrpc")
+			lj = LiveJournal (0, base=xmlrpc)
+		except NoOptionError: # default to LJ
+			lj = LiveJournal (0)
 		info = lj.login (username, password)
 		security = list2mask (m.config.get("livejournal","security"), info.friendgroups)
 
