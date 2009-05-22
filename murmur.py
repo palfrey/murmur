@@ -164,7 +164,10 @@ class Murmur:
 						found = True
 						break
 				if not found:
-					print "can't find reply for %d"%top.in_reply_to_status_id,top.text
+					try:
+						print "can't find reply for %d"%top.in_reply_to_status_id,top.text
+					except UnicodeEncodeError:
+						print "<unicode issues>"
 					for item in existing:
 						if item[-1].id == top.in_reply_to_status_id:
 							print "found in existing!",[(x.id,x.text) for x in item]
@@ -288,7 +291,10 @@ if __name__  == "__main__":
 					print " ",
 			stdout.write(between)
 			text = "<em>%s</em> %s %s%s <a href=\"http://twitter.com/%s/statuses/%d\">#</a>"%(strftime("%d/%m %I:%M %p",when), name, between, item.text, item.user.screen_name, item.id)
-			print "%s"%item.text,
+			try:
+				print "%s"%item.text,
+			except UnicodeEncodeError:
+				print "<unicode issue>",
 			output+=text
 			if len(sequence)>1 and item!=sequence[-1]:
 				print ""
