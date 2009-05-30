@@ -263,6 +263,10 @@ if __name__  == "__main__":
 	m = Murmur(-opts.days)
 	todo = m.build_sequences()
 
+	if len(todo) == 0:
+		print "Nothing to post!"
+		exit(0)
+
 	print
 	output = "<lj-cut text=\"tweets\"><ul>"
 	for sequence in todo:
