@@ -236,6 +236,9 @@ class Murmur:
 
 	def build_sequences(self):
 		statuses = self.api.GetUserTimeline(self.username)
+		if statuses == None:
+			print "Error! Couldn't get timeline for specified user %s!"%self.username
+			exit(1)
 		todo = []
 		for s in statuses:
 			if s.id in self.used:
