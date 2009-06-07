@@ -113,14 +113,18 @@ def get_create_time(s):
 class Murmur:
 	used = []
 
-	def __init__(self, day=-1):
+	def __init__(self, day=-1, local_only=False):
 		self.config = SafeConfigParser()
 		self.config.read("settings.ini")
 
 		self.username = self.config.get("twitter","username")
 		self.password = self._decide_password()
 
-		self.api = CachedApi(username=self.username,password=self.password,max_age=60*60)
+		if local_only:
+			max_age = -1
+		else:
+			max_age = 60*60
+		self.api = CachedApi(username=self.username,password=self.password,max_age=max_age)
 
 		self.day = date.today()+timedelta(day)
 
@@ -259,9 +263,10 @@ if __name__  == "__main__":
 	parser = OptionParser()
 	parser.add_option("-n","--no-post",help="Don't post, just work out what we would have posted",dest="post",action="store_false",default=True)
 	parser.add_option("-d","--days",help="Go N days back. Default is 1 (i.e. yesterday's posts)",dest="days",type="int",default=1)
+	parser.add_option("-l","--local-only",help="Only use local data (which may be very old). Only of use for debugging in networkless environments", dest="local_only", default=False, action="store_true")
 	(opts,args) = parser.parse_args()
 
-	m = Murmur(-opts.days)
+	m = Murmur(-opts.days, opts.local_only)
 	todo = m.build_sequences()
 
 	if len(todo) == 0:
