@@ -114,9 +114,9 @@ def get_create_time(s):
 class Murmur:
 	used = []
 
-	def __init__(self, day=-1, local_only=False):
+	def __init__(self, day=-1, local_only=False, settings="settings.ini"):
 		self.config = SafeConfigParser()
-		self.config.read("settings.ini")
+		self.config.read(settings)
 
 		self.username = self.config.get("twitter","username")
 		self.password = self._decide_password()
@@ -265,9 +265,13 @@ if __name__  == "__main__":
 	parser.add_option("-n","--no-post",help="Don't post, just work out what we would have posted",dest="post",action="store_false",default=True)
 	parser.add_option("-d","--days",help="Go N days back. Default is 1 (i.e. yesterday's posts)",dest="days",type="int",default=1)
 	parser.add_option("-l","--local-only",help="Only use local data (which may be very old). Only of use for debugging in networkless environments", dest="local_only", default=False, action="store_true")
+	parser.add_option("-s","--settings-file",help="Specify a name of the settings file. Defaults to settings.ini",default="settings.ini")
 	(opts,args) = parser.parse_args()
 
-	m = Murmur(-opts.days, opts.local_only)
+	if len(args)!=0:
+		parser.error("Murmur doesn't take any extra args after the options!")
+
+	m = Murmur(-opts.days, opts.local_only, opts.settings_file)
 	todo = m.build_sequences()
 
 	if len(todo) == 0:
