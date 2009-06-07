@@ -35,9 +35,6 @@ twitter
 username: Your twitter username. Required.
 password: Your twitter password. Required if you have a protected feed, or want 
 to show tweets from other people's protected feeds.
-authenticated: Show tweets from other people's protected feeds (when you have 
-access to the data). Only works when the 'password' option has been set, and 
-defaults to 'true' when 'password' is set.
 
 livejournal
 ***********
