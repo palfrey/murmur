@@ -97,7 +97,6 @@ class CachedApi(twitter.Api):
 			dump(replies,file(pname,"wb"))
 		return replies
 
-
 def strip_front(raw):
 	while True:
 		x = raw[0]

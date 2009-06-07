@@ -1,10 +1,12 @@
 [twitter]
-username=your_twitter_name
+username = your_twitter_name
+password = your_twitter_password
+authenticated = False
 
 [livejournal]
-username=your_lj_username
-password=your_lj_password
-security=public # can also be private or friends
+username = your_lj_username
+password = your_lj_password
+security = public # can also be private or friends
 
 [mapping]
 your_twitter_friend = your_friends_lj_name
