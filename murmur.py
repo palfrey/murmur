@@ -9,7 +9,7 @@ from sys import stdout
 
 from re import compile
 from xml.dom.minidom import parseString
-from urllib2 import urlopen,HTTPError
+from urllib2 import urlopen,URLError
 
 class CachedApi(twitter.Api):
 	def __init__(self,*args,**kwargs):
@@ -76,7 +76,8 @@ class CachedApi(twitter.Api):
 			except twitter.TwitterAuthError,e:
 				dump(e,file(pname,"wb"))
 				raise
-			except HTTPError:
+			except URLError:
+				dump(None,file(pname,"wb"))
 				return None
 		return data
 
