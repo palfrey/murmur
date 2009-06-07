@@ -254,8 +254,7 @@ class Murmur:
 		return todo
 
 if __name__  == "__main__":
-
-	parser = OptionParser()
+	parser = OptionParser(description="Murmur, a Twitter -> Livejournal crossposter")
 	parser.add_option("-n","--no-post",help="Don't post, just work out what we would have posted",dest="post",action="store_false",default=True)
 	parser.add_option("-d","--days",help="Go N days back. Default is 1 (i.e. yesterday's posts)",dest="days",type="int",default=1)
 	parser.add_option("-l","--local-only",help="Only use local data (which may be very old). Only of use for debugging in networkless environments", dest="local_only", default=False, action="store_true")

@@ -73,7 +73,10 @@ This should be added to a cron job or equivalent so that Murmur can post each
 day's worth of Tweets, and as it only looks for Tweets from the previous day, 
 running it just after midnight (ideally randomly between 12pm and 1am to avoid 
 the load issues Twitter suffers from more severly from at the beginning and end 
-of each hour due to misconfigured automated programs like this)
+of each hour due to misconfigured automated programs like this).
 
+"python murmur.py --help" supplies more details, but the only option that will 
+be of use to most users is the "-s" option, which allows changing of the 
+specified settings file away from settings.ini.
 
 # vim:textwidth=80:formatoptions=taw
