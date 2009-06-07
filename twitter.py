@@ -1339,7 +1339,7 @@ class Api(object):
     data = simplejson.loads(json)
     return [Status.NewFromJsonDict(x) for x in data]
 
-  def GetUserTimeline(self, user=None, count=None, since=None, page=None):
+  def GetUserTimeline(self, user=None, page=None):
     '''Fetch the sequence of public twitter.Status messages for a single user.
 
     The twitter.Api instance must be authenticated if the user is private.
@@ -1348,24 +1348,11 @@ class Api(object):
       user:
         either the username (short_name) or id of the user to retrieve.  If
         not specified, then the current authenticated user is used. [optional]
-      count: the number of status messages to retrieve [optional]
-      since:
-        Narrows the returned results to just those statuses created
-        after the specified HTTP-formatted date. [optional]
 
     Returns:
-      A sequence of twitter.Status instances, one for each message up to count
+      A sequence of twitter.Status instances, one for each message
     '''
-    try:
-      if count:
-        int(count)
-    except:
-      raise TwitterError("Count must be an integer")
     parameters = {}
-    if count:
-      parameters['count'] = count
-    if since:
-      parameters['since'] = since
     if page:
       parameters['page'] = page
     if user:
@@ -1896,6 +1883,7 @@ class Api(object):
         try:
           url_data = opener.open(url, encoded_post_data).read()
         except urllib2.HTTPError,e:
+          print "Retrieving %s"%url
           if e.code == 401:
             raise TwitterAuthError(e.info()["Status"])
           else:
@@ -1992,3 +1980,5 @@ class _FileCache(object):
 
   def _GetPrefix(self,hashed_key):
     return os.path.sep.join(hashed_key[0:_FileCache.DEPTH])
+
+# vim:tabstop=2:shiftwidth=2:expandtab:

@@ -1,7 +1,7 @@
 import twitter
 from ConfigParser import SafeConfigParser, NoOptionError
 from pickle import load,dump
-from os.path import getmtime,exists
+from os.path import getmtime,exists,join
 from time import time,strptime,strftime
 from datetime import date, timedelta
 from optparse import OptionParser
@@ -9,7 +9,7 @@ from sys import stdout
 
 from re import compile
 from xml.dom.minidom import parseString
-from urllib2 import urlopen
+from urllib2 import urlopen,URLError
 
 class CachedApi(twitter.Api):
 	def __init__(self,*args,**kwargs):
@@ -25,6 +25,11 @@ class CachedApi(twitter.Api):
 			self.logged_in = True
 			twitter.Api.__init__(self)
 		self.max_age = kwargs['max_age']
+
+		if "cache" in kwargs:
+			self.cache = kwargs["cache"]
+		else:
+			self.cache = "cache"
 	
 	def _doLogin(self):
 		if self.logged_in:
@@ -35,7 +40,7 @@ class CachedApi(twitter.Api):
 		self.logged_in = True
 
 	def GetStatus(self, id):
-		pname ="status-%d.pickle"%id
+		pname = join(self.cache,"status-%d.pickle"%id)
 		try:
 			data = load(file(pname))
 			if isinstance(data,twitter.TwitterAuthError):
@@ -51,8 +56,9 @@ class CachedApi(twitter.Api):
 				dump(e,file(pname,"wb"))
 				raise
 		return data
-	def GetUserTimeline(self, user=None, count=None, since=None, page=1):
-		pname ="timeline-%s-%d.pickle"%(user,page)
+
+	def GetUserTimeline(self, user=None, page=1):
+		pname = join(self.cache, "timeline-%s-%d.pickle"%(user,page))
 		try:
 			if self.max_age==-1 or time()-getmtime(pname)<self.max_age:
 				data = load(file(pname))
@@ -65,12 +71,30 @@ class CachedApi(twitter.Api):
 		except (OSError,IOError,EOFError):
 			self._doLogin()
 			try:
-				data = twitter.Api.GetUserTimeline(self,user,count=count,since=since, page=page)
+				data = twitter.Api.GetUserTimeline(self,user, page=page)
 				dump(data,file(pname,"wb"))
 			except twitter.TwitterAuthError,e:
 				dump(e,file(pname,"wb"))
 				raise
+			except URLError:
+				dump(None,file(pname,"wb"))
+				return None
 		return data
+
+	def GetReplies(self, username = None):
+		if username == None:
+			assert self.username!=None
+			username = self.username
+		pname = join(self.cache, "replies-%s.pickle"%username)
+		try:
+			if exists(pname) and time()-getmtime(pname)>self.max_age:
+				raise IOError
+			replies = load(file(pname))
+		except (OSError,IOError,EOFError):
+			replies = urlopen("http://search.twitter.com/search.atom?lang=en&q=@%s&rpp=100"%username).read()
+			dump(replies,file(pname,"wb"))
+		return replies
+
 
 def strip_front(raw):
 	while True:
@@ -96,9 +120,6 @@ class Murmur:
 		self.api = CachedApi(username=self.username,password=self.password,max_age=60*60)
 
 		self.day = date.today()+timedelta(day)
-		self.day_string = strftime("%a, %d-%b-%Y %H:%M:%S GMT",self.day.timetuple())
-		further_back = date.today()+timedelta(day)-timedelta(1)
-		self.further_back_string = strftime("%a, %d-%b-%Y %H:%M:%S GMT",further_back.timetuple())
 
 	def gen_thread(self, s, existing=[]): # generates a thread of "stuff" based on an initial status
 		when = get_create_time(s)
@@ -117,7 +138,7 @@ class Murmur:
 					page = 1
 					while True:
 						print "Getting page %d for %s"%(page,othername)
-						extra = self.api.GetUserTimeline(othername,count=200,since=self.further_back_string, page=page)
+						extra = self.api.GetUserTimeline(othername, page=page)
 						if extra == []:
 							break
 						otherstatus.extend(extra)
@@ -167,16 +188,8 @@ class Murmur:
 	def build_replies(self, username=None, existing=[]):
 		if username == None:
 			username = self.username
-		pname = "replies-%s.pickle"%username
-		try:
-			if exists(pname) and time()-getmtime(pname)>60*60: # an hour
-				raise IOError
-			replies = load(file(pname))
-		except (OSError,IOError,EOFError):
-			replies = urlopen("http://search.twitter.com/search.atom?lang=en&q=@%s&rpp=100"%username).read()
-			dump(replies,file(pname,"wb"))
-
 		status = compile("http://twitter.com/([^\/]+)/statuses/(\d+)")
+		replies = self.api.GetReplies(username = username)
 
 		dom = parseString(replies)
 		links = dom.getElementsByTagName("link")
@@ -191,7 +204,9 @@ class Murmur:
 			if sid in self.used:
 				continue
 			#print "finding for %s"%otheruser,sid
-			statuses = self.api.GetUserTimeline(otheruser,since=self.further_back_string,count=200)
+			statuses = self.api.GetUserTimeline(otheruser)
+			if statuses == None: # couldn't find user
+				continue
 			#print [s.id for s in statuses]
 			for s in statuses:
 				if s.id == sid:
@@ -221,7 +236,7 @@ class Murmur:
 		return password
 
 	def build_trees(self):
-		statuses = self.api.GetUserTimeline(self.username,since=self.day_string,count=200)
+		statuses = self.api.GetUserTimeline(self.username)
 		todo = []
 		for s in statuses:
 			if s.id in self.used:
@@ -263,7 +278,7 @@ if __name__  == "__main__":
 					name = "<lj user=\"%s\">"%name
 			except NoOptionError:
 				pass
-			if item.text[0] == item.text[0].upper():
+			if item!=sequence[0] or (item.text[0].isalpha() and item.text[0] == item.text[0].upper()):
 				between = ": "
 			else:
 				between = ""
@@ -271,6 +286,8 @@ if __name__  == "__main__":
 			if name == None:
 				name = "<img src=\"https://assets1.twitter.com/images/favicon.ico\" width=\"17\" height=\"17\"/><a href=\"http://twitter.com/%s\"><b>%s</b></a>"%(item.user.screen_name,item.user.screen_name)
 				stdout.write(item.user.screen_name)
+				if between == "":
+					print " ",
 			stdout.write(between)
 			text = "<em>%s</em> %s %s%s <a href=\"http://twitter.com/%s/statuses/%d\">#</a>"%(strftime("%d/%m %I:%M %p",when), name, between, item.text, item.user.screen_name, item.id)
 			print "%s"%item.text,
