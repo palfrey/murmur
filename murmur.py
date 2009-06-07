@@ -74,10 +74,12 @@ class CachedApi(twitter.Api):
 				data = twitter.Api.GetUserTimeline(self,user, page=page)
 				dump(data,file(pname,"wb"))
 			except twitter.TwitterAuthError,e:
-				dump(e,file(pname,"wb"))
+				if not exists(pname):
+					dump(e,file(pname,"wb"))
 				raise
 			except URLError:
-				dump(None,file(pname,"wb"))
+				if not exists(pname):
+					dump(None,file(pname,"wb"))
 				return None
 		return data
 
