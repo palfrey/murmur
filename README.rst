@@ -32,17 +32,17 @@ three sections: twitter, livejournal and mapping.
 twitter
 *******
 
-username: Your twitter username. Required.
-password: Your twitter password. Required if you have a protected feed, or want 
-to show tweets from other people's protected feeds.
+- username: Your twitter username. Required.
+- password: Your twitter password. Required if you have a protected feed, or 
+  want to show tweets from other people's protected feeds.
 
 livejournal
 ***********
 
-username: Your livejournal username. Required.
-password: Your livejournal password. Required (we can't post without it).
-security: public, friends, private. Optional (defaults to public). Security 
-level to post to livejournal at. Defaults to 'public'.
+- username: Your livejournal username. Required.
+- password: Your livejournal password. Required (we can't post without it).
+- security: public, friends, private. Optional (defaults to public). Security 
+  level to post to livejournal at. Defaults to 'public'.
 
 mapping
 *******
