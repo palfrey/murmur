@@ -280,7 +280,7 @@ if __name__  == "__main__":
 	for sequence in todo:
 		output += "<li>"
 		for item in sequence:
-			when = strptime(item.created_at,"%a %b %d %H:%M:%S +0000 %Y")
+			when = get_create_time(item)
 			name = None
 			try:
 				name = m.config.get("mapping",item.user.screen_name)
