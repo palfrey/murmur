@@ -8,6 +8,9 @@ from datetime import date, timedelta
 from optparse import OptionParser
 from sys import stdout
 
+from dateutil.tz import *
+from datetime import datetime
+
 from re import compile
 from xml.dom.minidom import parseString
 from urllib2 import urlopen,URLError
@@ -113,7 +116,19 @@ def strip_front(raw):
 	return raw
 
 def get_create_time(s):
-	return strptime(s.created_at,"%a %b %d %H:%M:%S +0000 %Y")
+	mappings = {"London":"Europe/London"}
+	tz = s.user.time_zone
+	if tz in mappings:
+		tz = mappings[tz]
+
+	dt = datetime.strptime(s.created_at,"%a %b %d %H:%M:%S +0000 %Y")
+	try:
+		tz = tzfile("/usr/share/zoneinfo/"+tz)
+		dt = dt.replace(tzinfo = tz)
+		dt += dt.utcoffset() # fix the offset (original was in this timezone)
+	except IOError:
+		dt = dt.replace(tzinfo = tzutc())
+	return dt
 
 class Murmur:
 	used = []
@@ -135,7 +150,7 @@ class Murmur:
 
 	def gen_thread(self, s, existing=[]): # generates a thread of "stuff" based on an initial status
 		when = get_create_time(s)
-		if date(*when[:3]) != self.day:
+		if when.date() != self.day:
 			return None
 		s.when = when
 		top = s
@@ -155,8 +170,8 @@ class Murmur:
 							break
 						otherstatus.extend(extra)
 						when = get_create_time(extra[-1])
-						print "self.day",self.day,"last",date(*when[:3])
-						if date(*when[:3]) < self.day:
+						print "self.day",self.day,"last",when.date()
+						if when.date() < self.day:
 							break
 						page+=1
 				except twitter.TwitterAuthError: # assume protected updates
@@ -302,7 +317,7 @@ if __name__  == "__main__":
 				if between == "":
 					print " ",
 			stdout.write(between)
-			text = "<em>%s</em> %s %s%s <a href=\"http://twitter.com/%s/statuses/%d\">#</a>"%(strftime("%d/%m %I:%M %p",when), name, between, item.text, item.user.screen_name, item.id)
+			text = "<em>%s</em> %s %s%s <a href=\"http://twitter.com/%s/statuses/%d\">#</a>"%(when.strftime("%d/%m %I:%M %p"), name, between, item.text, item.user.screen_name, item.id)
 			try:
 				print "%s"%item.text,
 			except UnicodeEncodeError:
