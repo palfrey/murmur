@@ -186,7 +186,7 @@ class Murmur:
 							return None
 					print "Using direct methods"
 					o = self.api.GetStatus(top.in_reply_to_status_id)
-					if o.id in self.used:
+					if o==None or o.id in self.used:
 						break
 					top.text = strip_front(top.text)
 					o.when = get_create_time(o)
