@@ -296,6 +296,7 @@ if __name__  == "__main__":
 		output += "<li>"
 		for item in sequence:
 			when = get_create_time(item)
+			print when.strftime("%d/%m %I:%M %p"),
 			name = None
 			try:
 				name = m.config.get("mapping",item.user.screen_name)
@@ -313,7 +314,7 @@ if __name__  == "__main__":
 				print "",
 			if name == None:
 				name = "<img src=\"https://assets1.twitter.com/images/favicon.ico\" width=\"17\" height=\"17\"/><a href=\"http://twitter.com/%s\"><b>%s</b></a>"%(item.user.screen_name,item.user.screen_name)
-				stdout.write(item.user.screen_name)
+				print item.user.screen_name,
 				if between == "":
 					print " ",
 			stdout.write(between)
