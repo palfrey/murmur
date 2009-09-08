@@ -58,6 +58,10 @@ class CachedApi(twitter.Api):
 			except twitter.TwitterAuthError,e:
 				dump(e,file(pname,"wb"))
 				raise
+			except URLError:
+				if not exists(pname):
+					dump(None,file(pname,"wb"))
+				return None
 		return data
 
 	def GetUserTimeline(self, user=None, page=1):
