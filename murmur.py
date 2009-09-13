@@ -122,11 +122,14 @@ def get_create_time(s):
 		tz = mappings[tz]
 
 	dt = datetime.strptime(s.created_at,"%a %b %d %H:%M:%S +0000 %Y")
-	try:
-		tz = tzfile("/usr/share/zoneinfo/"+tz)
-		dt = dt.replace(tzinfo = tz)
-		dt += dt.utcoffset() # fix the offset (original was in this timezone)
-	except IOError:
+	if tz != None:
+		try:
+			tz = tzfile("/usr/share/zoneinfo/"+tz)
+			dt = dt.replace(tzinfo = tz)
+			dt += dt.utcoffset() # fix the offset (original was in this timezone)
+		except IOError:
+			dt = dt.replace(tzinfo = tzutc())
+	else:
 		dt = dt.replace(tzinfo = tzutc())
 	return dt
 
