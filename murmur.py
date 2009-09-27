@@ -14,6 +14,7 @@ from datetime import datetime
 from re import compile
 from xml.dom.minidom import parseString
 from urllib2 import urlopen,URLError
+import socket
 
 class CachedApi(twitter.Api):
 	def __init__(self,*args,**kwargs):
@@ -61,7 +62,7 @@ class CachedApi(twitter.Api):
 			except twitter.TwitterAuthError,e:
 				dump(e,file(pname,"wb"))
 				raise
-			except URLError:
+			except (socket.error,URLError):
 				if not exists(pname):
 					dump(None,file(pname,"wb"))
 				return None
@@ -87,7 +88,7 @@ class CachedApi(twitter.Api):
 				if not exists(pname):
 					dump(e,file(pname,"wb"))
 				raise
-			except URLError:
+			except (socket.error,URLError):
 				if not exists(pname):
 					dump(None,file(pname,"wb"))
 				return None
