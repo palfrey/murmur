@@ -1,7 +1,7 @@
 import twitter
 from ConfigParser import SafeConfigParser, NoOptionError
 from pickle import load,dump
-from urllib2 import urlopen, HTTPError
+from urllib2 import urlopen, HTTPError, URLError
 from sys import stdout
 from os.path import exists, join
 from os import mkdir
@@ -38,6 +38,9 @@ for f in friends:
 			friends[f] = True
 		except HTTPError,e:
 			print f,e.code
+			friends[f] = False
+		except URLError,e:
+			print f,e.errno
 			friends[f] = False
 		dump(friends,file(pname,"wb"))
 	
