@@ -207,7 +207,6 @@ class Murmur:
 					print "Using direct methods"
 					o = self.api.GetStatus(tree.in_reply_to_status_id)
 					if o==None or o.id in self.used:
-					if o.id in self.used:
 						break
 					tree.text = strip_front(tree.text)
 					o.when = get_create_time(o)
