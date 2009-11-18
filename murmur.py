@@ -2,14 +2,19 @@ import twitter
 from ConfigParser import SafeConfigParser, NoOptionError
 from pickle import load,dump
 from os.path import getmtime,exists,join
+from os import mkdir
 from time import time,strptime,strftime
 from datetime import date, timedelta
 from optparse import OptionParser
 from sys import stdout
 
+from dateutil.tz import *
+from datetime import datetime
+
 from re import compile
 from xml.dom.minidom import parseString
 from urllib2 import urlopen,URLError
+import socket
 
 class CachedApi(twitter.Api):
 	def __init__(self,*args,**kwargs):
@@ -30,6 +35,8 @@ class CachedApi(twitter.Api):
 			self.cache = kwargs["cache"]
 		else:
 			self.cache = "cache"
+		if not exists(self.cache):
+			mkdir(self.cache)
 	
 	def _doLogin(self):
 		if self.logged_in:
@@ -55,6 +62,10 @@ class CachedApi(twitter.Api):
 			except twitter.TwitterAuthError,e:
 				dump(e,file(pname,"wb"))
 				raise
+			except (socket.error,URLError):
+				if not exists(pname):
+					dump(None,file(pname,"wb"))
+				return None
 		return data
 
 	def GetUserTimeline(self, user=None, page=1):
@@ -77,7 +88,7 @@ class CachedApi(twitter.Api):
 				if not exists(pname):
 					dump(e,file(pname,"wb"))
 				raise
-			except URLError:
+			except (socket.error,URLError):
 				if not exists(pname):
 					dump(None,file(pname,"wb"))
 				return None
@@ -106,7 +117,22 @@ def strip_front(raw):
 	return raw
 
 def get_create_time(s):
-	return strptime(s.created_at,"%a %b %d %H:%M:%S +0000 %Y")
+	mappings = {"London":"Europe/London"}
+	tz = s.user.time_zone
+	if tz in mappings:
+		tz = mappings[tz]
+
+	dt = datetime.strptime(s.created_at,"%a %b %d %H:%M:%S +0000 %Y")
+	if tz != None:
+		try:
+			tz = tzfile("/usr/share/zoneinfo/"+tz)
+			dt = dt.replace(tzinfo = tz)
+			dt += dt.utcoffset() # fix the offset (original was in this timezone)
+		except IOError:
+			dt = dt.replace(tzinfo = tzutc())
+	else:
+		dt = dt.replace(tzinfo = tzutc())
+	return dt
 
 class Murmur:
 	used = []
@@ -128,7 +154,7 @@ class Murmur:
 
 	def gen_thread(self, s, existing=[]): # generates a thread of "stuff" based on an initial status
 		when = get_create_time(s)
-		if date(*when[:3]) != self.day:
+		if when.date() != self.day:
 			return None
 		s.when = when
 		s.children = []
@@ -148,8 +174,8 @@ class Murmur:
 							break
 						otherstatus.extend(extra)
 						when = get_create_time(extra[-1])
-						print "self.day",self.day,"last",date(*when[:3])
-						if date(*when[:3]) < self.day:
+						print "self.day",self.day,"last",when.date()
+						if when.date() < self.day:
 							break
 						page+=1
 				except twitter.TwitterAuthError: # assume protected updates
@@ -168,7 +194,10 @@ class Murmur:
 						found = True
 						break
 				if not found:
-					print "can't find reply for %d"%tree.in_reply_to_status_id,tree.text
+					try:
+						print "can't find reply for %d"%tree.in_reply_to_status_id,tree.text
+					except UnicodeEncodeError:
+						print "<unicode issues>"
 					for item in existing:
 						if item.id == tree.in_reply_to_status_id:
 							print "found in existing!",(item.id,item.text)
@@ -177,6 +206,7 @@ class Murmur:
 							return None
 					print "Using direct methods"
 					o = self.api.GetStatus(tree.in_reply_to_status_id)
+					if o==None or o.id in self.used:
 					if o.id in self.used:
 						break
 					tree.text = strip_front(tree.text)
@@ -229,19 +259,13 @@ class Murmur:
 		except NoOptionError: # no password = unprotected updates only
 			password = None
 
-		if password!=None:
-			try:
-				auth = self.config.get("twitter","authenticated")
-				if not eval(auth): # assume some value that resolves to False
-					print "Clearing password due to auth = False"
-					password = None
-			except NoOptionError: # no authenticated field = work from password
-				pass
-		
 		return password
 
 	def build_trees(self):
 		statuses = self.api.GetUserTimeline(self.username)
+		if statuses == None:
+			print "Error! Couldn't get timeline for specified user %s!"%self.username
+			exit(1)
 		todo = []
 		for s in statuses:
 			if s.id in self.used:
@@ -257,8 +281,7 @@ class Murmur:
 		return todo
 
 if __name__  == "__main__":
-
-	parser = OptionParser()
+	parser = OptionParser(description="Murmur, a Twitter -> Livejournal crossposter")
 	parser.add_option("-n","--no-post",help="Don't post, just work out what we would have posted",dest="post",action="store_false",default=True)
 	parser.add_option("-d","--days",help="Go N days back. Default is 1 (i.e. yesterday's posts)",dest="days",type="int",default=1)
 	parser.add_option("-l","--local-only",help="Only use local data (which may be very old). Only of use for debugging in networkless environments", dest="local_only", default=False, action="store_true")
@@ -271,13 +294,18 @@ if __name__  == "__main__":
 	m = Murmur(-opts.days, opts.local_only, opts.settings_file)
 	todo = m.build_trees()
 
+	if len(todo) == 0:
+		print "Nothing to post!"
+		exit(0)
+
 	print
 	output = "<lj-cut text=\"tweets\"><ul>"
 	for tree in todo:
 		print "tree",tree.children
 		output += "<li>"
 		for item in tree:
-			when = strptime(item.created_at,"%a %b %d %H:%M:%S +0000 %Y")
+			when = get_create_time(item)
+			print when.strftime("%d/%m %I:%M %p"),
 			name = None
 			try:
 				name = m.config.get("mapping",item.user.screen_name)
@@ -295,12 +323,15 @@ if __name__  == "__main__":
 				print "",
 			if name == None:
 				name = "<img src=\"https://assets1.twitter.com/images/favicon.ico\" width=\"17\" height=\"17\"/><a href=\"http://twitter.com/%s\"><b>%s</b></a>"%(item.user.screen_name,item.user.screen_name)
-				stdout.write(item.user.screen_name)
+				print item.user.screen_name,
 				if between == "":
 					print " ",
 			stdout.write(between)
-			text = "<em>%s</em> %s %s%s <a href=\"http://twitter.com/%s/statuses/%d\">#</a>"%(strftime("%d/%m %I:%M %p",when), name, between, item.text, item.user.screen_name, item.id)
-			print "%s"%item.text,
+			text = "<em>%s</em> %s %s%s <a href=\"http://twitter.com/%s/statuses/%d\">#</a>"%(when.strftime("%d/%m %I:%M %p"), name, between, item.text, item.user.screen_name, item.id)
+			try:
+				print "%s"%item.text,
+			except UnicodeEncodeError:
+				print "<unicode issue>",
 			output+=text
 			if len(tree)>1 and item!=tree[-1]:
 				print ""
@@ -323,7 +354,11 @@ if __name__  == "__main__":
 		password = m.config.get("livejournal","password")
 		usejournal = username
 
-		lj = LiveJournal (0)
+		try:
+			xmlrpc = m.config.get("livejournal","xmlrpc")
+			lj = LiveJournal (0, base=xmlrpc)
+		except NoOptionError: # default to LJ
+			lj = LiveJournal (0)
 		info = lj.login (username, password)
 		security = list2mask (m.config.get("livejournal","security"), info.friendgroups)
 

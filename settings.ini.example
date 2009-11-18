@@ -1,7 +1,6 @@
 [twitter]
 username = your_twitter_name
 password = your_twitter_password
-authenticated = False
 
 [livejournal]
 username = your_lj_username
