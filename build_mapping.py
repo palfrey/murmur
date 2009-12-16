@@ -3,8 +3,9 @@ from ConfigParser import SafeConfigParser, NoOptionError
 from pickle import load,dump
 from urllib2 import urlopen, HTTPError, URLError
 from sys import stdout
-from os.path import exists, join
+from os.path import exists, join, getmtime
 from os import mkdir
+from time import time
 
 config = SafeConfigParser()
 config.read("settings.ini")
@@ -16,6 +17,8 @@ if not exists(cache):
 	mkdir(cache)
 pname = join(cache,"friends-%s.pickle"%username)
 try:
+	if exists(pname) and time()-getmtime(pname)>(24*60*60): # 1 day
+		raise OSError
 	friends = load(file(pname))
 except (OSError,IOError,EOFError):
 	password = config.get("twitter","password")
