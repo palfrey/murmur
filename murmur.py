@@ -68,6 +68,32 @@ class CachedApi(twitter.Api):
 				return None
 		return data
 
+	def GetUserRetweets(self, page=1):
+		pname = join(self.cache, "retweets-%d.pickle"%page)
+		try:
+			if self.max_age==-1 or time()-getmtime(pname)<self.max_age:
+				data = load(file(pname))
+				if isinstance(data,twitter.TwitterAuthError):
+					raise data
+				else:
+					return data
+			else:
+				raise IOError
+		except (OSError,IOError,EOFError):
+			self._doLogin()
+			try:
+				data = twitter.Api.GetUserRetweets(self,page)
+				dump(data,file(pname,"wb"))
+			except twitter.TwitterAuthError,e:
+				if not exists(pname):
+					dump(e,file(pname,"wb"))
+				raise
+			except (socket.error,URLError):
+				if not exists(pname):
+					dump(None,file(pname,"wb"))
+				return None
+		return data
+
 	def GetUserTimeline(self, user=None, page=1):
 		pname = join(self.cache, "timeline-%s-%d.pickle"%(user,page))
 		try:
@@ -258,7 +284,7 @@ class Murmur:
 		return password
 
 	def build_sequences(self):
-		statuses = self.api.GetUserTimeline(self.username)
+		statuses = self.api.GetUserTimeline(self.username) + self.api.GetUserRetweets()
 		if statuses == None:
 			print "Error! Couldn't get timeline for specified user %s!"%self.username
 			exit(1)

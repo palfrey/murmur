@@ -1339,6 +1339,23 @@ class Api(object):
     data = simplejson.loads(json)
     return [Status.NewFromJsonDict(x) for x in data]
 
+  def GetUserRetweets(self, page=None):
+    '''Fetch the sequence of public twitter.Status messages for the authed user
+
+    The twitter.Api instance must be authenticated if the user is private.
+
+    Returns:
+      A sequence of twitter.Status instances, one for each message
+    '''
+    parameters = {}
+    if page:
+      parameters['page'] = page
+    if not self._username:
+      raise TwitterError("User must be specified if API is not authenticated.")
+    json = self._FetchUrl('http://api.twitter.com/1/statuses/retweeted_by_me.json', parameters=parameters)
+    data = simplejson.loads(json)
+    return [Status.NewFromJsonDict(x) for x in data]
+
   def GetUserTimeline(self, user=None, page=None):
     '''Fetch the sequence of public twitter.Status messages for a single user.
 
