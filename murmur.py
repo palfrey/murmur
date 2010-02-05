@@ -126,7 +126,7 @@ class CachedApi(twitter.Api):
 			username = self.username
 		pname = join(self.cache, "replies-%s.pickle"%username)
 		try:
-			if exists(pname) and time()-getmtime(pname)>self.max_age:
+			if exists(pname) and self.max_age !=-1 and time()-getmtime(pname)>self.max_age:
 				raise IOError
 			replies = load(file(pname))
 		except (OSError,IOError,EOFError):
