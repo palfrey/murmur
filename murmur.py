@@ -284,10 +284,13 @@ class Murmur:
 		return password
 
 	def build_sequences(self):
-		statuses = self.api.GetUserTimeline(self.username) + self.api.GetUserRetweets()
+		statuses = self.api.GetUserTimeline(self.username)
 		if statuses == None:
 			print "Error! Couldn't get timeline for specified user %s!"%self.username
 			exit(1)
+		rt = self.api.GetUserRetweets()
+		if rt != None:
+			statuses += rt
 		todo = []
 		for s in statuses:
 			if s.id in self.used:
